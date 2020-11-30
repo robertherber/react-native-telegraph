@@ -1,19 +1,28 @@
 import React, { useEffect } from 'react';
 import { useContext } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Provider } from 'react-native-paper';
-import OverlayContext, { OverlayContextProvider, BannerArea } from 'react-native-telegraph';
+import { StyleSheet, View } from 'react-native';
+import { BannerArea, BannerContext, SnackbarContext, SnackbarProvider } from 'react-native-telegraph';
 
 const TelegraphDemo = () => {
-  const { addMessage, hideMessage } = useContext(OverlayContext)
+  const { addMessage, removeMessage } = useContext(SnackbarContext);
+  const { addBanner, removeBanner } = useContext(BannerContext);
   
-  React.useEffect(() => {
-    addMessage('hello world with a verryrsdfgdsfgsdfg sdfg sdfg sdfg sdfg sdfg sdfg s', {
+  useEffect(() => {
+    addBanner('hello world with a verryrsdfgdsfgsdfg sdfg sdfg sdfg sdfg sdfg sdfg s', {
       actions: [{
-        onPress: hideMessage,
+        onPress: removeBanner,
         label: 'One'
       },{
-        onPress: hideMessage,
+        onPress: removeBanner,
+        label: 'Two'
+      }],
+    })
+    addMessage('hello world with a verryrsdfgdsfgsdfg sdfg sdfg sdfg sdfg sdfg sdfg s', {
+      actions: [{
+        onPress: removeMessage,
+        label: 'One'
+      },{
+        onPress: removeMessage,
         label: 'Two'
       }]
     })
@@ -23,21 +32,15 @@ const TelegraphDemo = () => {
   }, []);
 
   return <View>
-    <BannerArea />
+    <BannerArea />    
   </View>
 }
 
 export default function App() {
-  useEffect(() => {
-
-  }, [])
-
   return (
-    <Provider>
-      <OverlayContextProvider>
-        <TelegraphDemo />
-      </OverlayContextProvider>
-    </Provider>
+    <SnackbarProvider>      
+      <TelegraphDemo />
+    </SnackbarProvider>
   );
 }
 
