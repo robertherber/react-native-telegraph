@@ -6,14 +6,14 @@ import { SafeAreaView, StyleSheet } from 'react-native';
 import { nanoid } from 'nanoid/non-secure';
 import type { IconSource } from 'react-native-paper/lib/typescript/src/components/Icon';
 
-import { Action } from './types';
+import { Action, mapActionToRawAction, RawAction } from './types';
 
 
 type BannerData<T = unknown> = {
   id: string,
   title: string,
   timeout?: number,
-  actions: Array<Action>,
+  actions: Array<RawAction>,
   icon?: IconSource
   status: 'hidden' | 'visible' | 'queued',
   data?: T
@@ -68,7 +68,7 @@ export const BannerProvider: React.FC<Props> = ({ children, maxSimultaneusItems 
                 timeout = opts?.timeout,
                 hideSelf = () => hideBanner(bannerId),
                 icon = opts?.icon,
-                actions = opts?.actions || (!timeout ? [{ onPress: hideSelf, label: 'Hide' }] : []);
+                actions = opts?.actions?.map(mapActionToRawAction(hideSelf)) || (!timeout ? [{ onPress: hideSelf, label: 'Hide' }] : []);
 
           setBanners((msgs) => {
             const status = msgs.length >= maxSimultaneusItems ? 'queued' : 'visible';

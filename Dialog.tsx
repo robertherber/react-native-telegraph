@@ -6,7 +6,7 @@ import {
 } from 'react-native-paper';
 import { nanoid } from 'nanoid/non-secure';
 
-import { Action } from './types';
+import { Action, mapActionToRawAction, RawAction } from './types';
 
 
 export type DialogData<T = unknown> = {
@@ -14,7 +14,7 @@ export type DialogData<T = unknown> = {
   title: string,
   dismissable?: boolean,
   description?: string,
-  actions: Array<Action>,
+  actions: Array<RawAction>,
   status: 'hidden' | 'visible' | 'queued',
   data?: T
 }
@@ -69,9 +69,14 @@ const DefaultDialogComponent: React.FC<DialogContextProps> = ({
         )
         : null }
       <Dialog.Actions>
-        { item.actions.map((a) => {
-          <Button onPress={() => a.onPress(item.id)}>{ a.label }</Button>;
-        }) }
+        { item.actions.map((a) => (
+          <Button
+            key={a.label}
+            onPress={() => a.onPress(item.id)}
+          >
+            { a.label }
+          </Button>
+        )) }
       </Dialog.Actions>
     </Dialog>
   );
@@ -94,7 +99,9 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({
         }, []),
         showDialog = useCallback((title: string, opts?: DialogOptions) => {
           const dialogId = opts?.id || nanoid(),
-                actions = opts?.actions || [{ onPress: () => hideDialog(dialogId), label: 'Hide' }];
+                hideSelf = () => hideDialog(dialogId),
+                actions = opts?.actions?.map(mapActionToRawAction(hideSelf))
+                  || [{ onPress: () => hideDialog(dialogId), label: 'Hide' }];
 
           setDialogs((msgs) => {
             const status = msgs.length >= 1 ? 'queued' : 'visible';

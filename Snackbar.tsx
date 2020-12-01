@@ -8,7 +8,7 @@ import { SafeAreaView, StyleSheet } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { nanoid } from 'nanoid/non-secure';
 
-import { Action } from './types';
+import { Action, RawAction, mapActionToRawAction } from './types';
 
 
 type Snackbar<T = unknown> = {
@@ -16,7 +16,7 @@ type Snackbar<T = unknown> = {
   title: string,
   timeout?: number,
   position: 'top' | 'bottom',
-  actions: Array<Action>,
+  actions: Array<RawAction>,
   status: 'hidden' | 'visible' | 'queued',
   data?: T,
   animationDuration?: number,
@@ -139,7 +139,9 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         showSnackbar = useCallback((title: string, opts?: SnackbarOptions) => {
           const messageId = opts?.id || nanoid(),
                 timeout = opts?.timeout || (opts?.persistent ? undefined : defaultTimeout),
-                actions = opts?.actions || (opts?.persistent ? [{ onPress: () => hideSnackbar(messageId), label: 'Hide' }] : []),
+                hideSelf = () => hideSnackbar(messageId),
+                actions = opts?.actions?.map(mapActionToRawAction(hideSelf))
+                  || (opts?.persistent ? [{ onPress: hideSelf, label: 'Hide' }] : []),
                 position = opts?.position || 'bottom';
 
           setSnackbars((msgs) => {
@@ -225,14 +227,6 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   );
 };
 
-export const useShowSnackbar = (defaultOpts?: SnackbarOptions): SnackbarContextData['showSnackbar'] => {
-  const { showSnackbar } = useContext(SnackbarContext);
-
-  return (
-    title: string,
-    opts?: SnackbarOptions,
-  ) => showSnackbar(title, { ...defaultOpts, ...opts });
-};
 
 export const useHideSnackbar = (snackbarId?: string): SnackbarContextData['hideSnackbar'] => {
   const { hideSnackbar } = useContext(SnackbarContext);
