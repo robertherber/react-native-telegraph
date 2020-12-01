@@ -1,14 +1,15 @@
 import React, {
-  createContext, useCallback, useContext, useEffect, useMemo, useState,
+  createContext, useCallback, useContext, useEffect, useMemo, useState, useRef,
 } from 'react';
 import {
   Button, Portal, Surface, Text,
 } from 'react-native-paper';
 import { SafeAreaView, StyleSheet } from 'react-native';
 import * as Animatable from 'react-native-animatable';
-import { nanoid } from 'nanoid/non-secure';
 
-import { Action, RawAction, mapActionToRawAction } from './types';
+import {
+  Action, RawAction, mapActionToRawAction, getNanoID, useDeepMemo,
+} from './types';
 
 
 type Snackbar<T = unknown> = {
@@ -45,6 +46,7 @@ const SnackbarContext = createContext<SnackbarContextData>({
   showSnackbar: () => '',
   hideSnackbar: () => undefined,
 });
+
 
 const styles = StyleSheet.create({
   container: { left: 0, right: 0, position: 'absolute' },
@@ -137,7 +139,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           setSnackbars((msgs) => msgs.filter((m) => m.id !== messageId));
         }, []),
         showSnackbar = useCallback((title: string, opts?: SnackbarOptions) => {
-          const messageId = opts?.id || nanoid(),
+          const messageId = opts?.id || getNanoID(),
                 timeout = opts?.timeout || (opts?.persistent ? undefined : defaultTimeout),
                 hideSelf = () => hideSnackbar(messageId),
                 actions = opts?.actions?.map(mapActionToRawAction(hideSelf))
@@ -229,18 +231,27 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
 
 export const useShowSnackbar = (defaultOpts?: SnackbarOptions): SnackbarContextData['showSnackbar'] => {
   const { showSnackbar } = useContext(SnackbarContext);
-
-  return (
+  const memoizedDefaultOpts = useDeepMemo(defaultOpts);
+  const overridableShowSnackbar = useCallback((
     title: string,
     opts?: SnackbarOptions,
-  ) => showSnackbar(title, { ...defaultOpts, ...opts });
+  ) => showSnackbar(
+    title,
+    { ...memoizedDefaultOpts, ...opts },
+  ), [showSnackbar, memoizedDefaultOpts]);
+
+  return overridableShowSnackbar;
 };
 
 export const useHideSnackbar = (snackbarId?: string): SnackbarContextData['hideSnackbar'] => {
   const { hideSnackbar } = useContext(SnackbarContext);
 
+  const overridableHideSnackbar = useCallback((
+    overrideSnackbarId?: string,
+  ) => hideSnackbar(overrideSnackbarId || snackbarId as string), [hideSnackbar, snackbarId]);
+
   return snackbarId
-    ? (overrideSnackbarId?: string) => hideSnackbar(overrideSnackbarId || snackbarId)
+    ? overridableHideSnackbar
     : hideSnackbar;
 };
 

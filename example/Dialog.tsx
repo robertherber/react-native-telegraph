@@ -5,7 +5,8 @@ import {
   Button, Dialog, Paragraph, Portal,
 } from 'react-native-paper';
 import { StyleSheet } from 'react-native';
-import { nanoid } from 'nanoid/non-secure';
+import 'react-native-get-random-values';
+import { nanoid } from 'nanoid';
 
 import { Action } from './types';
 

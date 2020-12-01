@@ -4,9 +4,12 @@ import React, {
 import {
   Button, Dialog, Paragraph, Portal,
 } from 'react-native-paper';
-import { nanoid } from 'nanoid/non-secure';
+import 'react-native-get-random-values';
+import { nanoid } from 'nanoid';
 
-import { Action, mapActionToRawAction, RawAction } from './types';
+import {
+  Action, mapActionToRawAction, RawAction, useDeepMemo,
+} from './types';
 
 
 export type DialogData<T = unknown> = {
@@ -156,8 +159,13 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({
 
 export const useShowDialog = (defaultOpts?: DialogOptions): DialogContextData['showDialog'] => {
   const { showDialog } = useContext(DialogContext);
+  const memoizedDefaultOpts = useDeepMemo(defaultOpts);
+  const overrideShowDialog = useCallback((
+    title: string,
+    opts?: DialogOptions,
+  ) => showDialog(title, { ...memoizedDefaultOpts, ...opts }), [memoizedDefaultOpts, showDialog]);
 
-  return (title: string, opts?: DialogOptions) => showDialog(title, { ...defaultOpts, ...opts });
+  return overrideShowDialog;
 };
 
 export const useHideDialog = (dialogId?: string): DialogContextData['hideDialog'] => {

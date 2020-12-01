@@ -6,7 +6,8 @@ import {
 } from 'react-native-paper';
 import { SafeAreaView, StyleSheet } from 'react-native';
 import * as Animatable from 'react-native-animatable';
-import { nanoid } from 'nanoid/non-secure';
+import 'react-native-get-random-values';
+import { nanoid } from 'nanoid';
 
 import { Action } from './types';
 

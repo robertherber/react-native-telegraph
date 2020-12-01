@@ -3,10 +3,13 @@ import React, {
 } from 'react';
 import { Banner } from 'react-native-paper';
 import { SafeAreaView, StyleSheet } from 'react-native';
-import { nanoid } from 'nanoid/non-secure';
+import 'react-native-get-random-values';
+import { nanoid } from 'nanoid';
 import type { IconSource } from 'react-native-paper/lib/typescript/src/components/Icon';
 
-import { Action, mapActionToRawAction, RawAction } from './types';
+import {
+  Action, mapActionToRawAction, RawAction, useDeepMemo,
+} from './types';
 
 
 type BannerData<T = unknown> = {
@@ -155,7 +158,13 @@ export const BannerArea: React.FC<{ CustomBannerComponent?: BannerComponent }> =
 export const useShowBanner = (defaultOpts?: BannerOptions): BannerContextData['showBanner'] => {
   const { showBanner } = useContext(BannerContext);
 
-  return (title: string, opts?: BannerOptions) => showBanner(title, { ...defaultOpts, ...opts });
+  const memoizedDefaultOpts = useDeepMemo(defaultOpts);
+  const overridableShowBanner = useCallback((
+    title: string,
+    opts?: BannerOptions,
+  ) => showBanner(title, { ...memoizedDefaultOpts, ...opts }), [memoizedDefaultOpts, showBanner]);
+
+  return overridableShowBanner;
 };
 
 export const useHideBanner = (bannerId?: string): BannerContextData['hideBanner'] => {

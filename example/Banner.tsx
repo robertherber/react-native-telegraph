@@ -3,7 +3,8 @@ import React, {
 } from 'react';
 import { Banner } from 'react-native-paper';
 import { SafeAreaView, StyleSheet } from 'react-native';
-import { nanoid } from 'nanoid/non-secure';
+import 'react-native-get-random-values';
+import { nanoid } from 'nanoid';
 import type { IconSource } from 'react-native-paper/lib/typescript/src/components/Icon';
 
 import { Action } from './types';
