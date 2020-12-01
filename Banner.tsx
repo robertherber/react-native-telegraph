@@ -33,7 +33,7 @@ type BannerContextData = {
   hideBanner: (bannerId: string) => void,
 }
 
-const BannerContext = createContext<BannerContextData>({
+export const BannerContext = createContext<BannerContextData>({
   visibleBanners: [],
   showBanner: () => '',
   hideBanner: () => undefined,
@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   reverse: { flexDirection: 'column-reverse' },
 });
 
-type Props = {
+export type Props = {
   maxSimultaneusItems?: number,
 }
 
@@ -120,7 +120,7 @@ export const BannerProvider: React.FC<Props> = ({ children, maxSimultaneusItems 
   );
 };
 
-type BannerComponent = React.FC<{
+export type BannerComponent = React.FC<{
   item: BannerData,
   index: number
 }>
@@ -151,10 +151,11 @@ export const BannerArea: React.FC<{ CustomBannerComponent?: BannerComponent }> =
   );
 };
 
-export const useShowBanner = (): BannerContextData['showBanner'] => {
+
+export const useShowBanner = (defaultOpts?: BannerOptions): BannerContextData['showBanner'] => {
   const { showBanner } = useContext(BannerContext);
 
-  return showBanner;
+  return (title: string, opts?: BannerOptions) => showBanner(title, { ...defaultOpts, ...opts });
 };
 
 export const useHideBanner = (bannerId?: string): BannerContextData['hideBanner'] => {
@@ -168,5 +169,8 @@ export const useHideBanner = (bannerId?: string): BannerContextData['hideBanner'
     return hideBanner(actualBannerId);
   };
 };
+
+export const useBanner = (defaultOpts?: BannerOptions): [BannerContextData['showBanner'], BannerContextData['hideBanner']] => [useShowBanner(defaultOpts), useHideBanner()];
+
 
 export default BannerContext;

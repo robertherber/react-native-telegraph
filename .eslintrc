@@ -9,40 +9,39 @@
       "kingstinct-react-native"
   ],
   "rules": {
-      "import/no-unused-modules": [1, {"unusedExports": true}],
+      "import/no-unused-modules": [1, {"missingExports": true, "unusedExports": false}],
       "@typescript-eslint/no-unused-vars": ["error"],
       "no-multiple-empty-lines": ["error", { "max": 2 }],
       "no-use-before-define": "off",
-        "@typescript-eslint/no-use-before-define": ["error"],
+      "@typescript-eslint/no-use-before-define": ["error"],
       "no-unused-vars": 0,
-        "import/extensions": [
-            "error",
-            "ignorePackages",
-            {
-                "js": "never",
-                "jsx": "never",
-                "ts": "never",
-                "tsx": "never"
-            }
-        ]
+      "import/extensions": [
+          "error",
+          "ignorePackages",
+          {
+              "js": "never",
+              "jsx": "never",
+              "ts": "never",
+              "tsx": "never"
+          }
+      ]
   },
   "parserOptions": {
       "project": "./tsconfig.json"
   },
-  
-    "settings": {
-        "import/extensions": [".js", ".jsx", ".ts", ".tsx"],
-        "import/parsers": {
-            "@typescript-eslint/parser": [".ts", ".tsx"]
+  "settings": {
+      "import/extensions": [".js", ".jsx", ".ts", ".tsx"],
+      "import/parsers": {
+          "@typescript-eslint/parser": [".ts", ".tsx"]
+        },
+      "import/resolver": {
+          "typescript": {
+            "project": "./tsconfig.json"
           },
-        "import/resolver": {
-            "typescript": {
-              "project": "./tsconfig.json"
-            },
-            "node": {
-              "extensions": [".js", ".jsx", ".ts", ".tsx"]
-            }
+          "node": {
+            "extensions": [".js", ".jsx", ".ts", ".tsx"]
           }
+        }
     }
 
 }

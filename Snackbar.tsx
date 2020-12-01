@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   reverse: { flexDirection: 'column-reverse' },
 });
 
-type SnackbarComponentProps = {
+export type SnackbarComponentProps = {
   index: number,
   item: Snackbar,
   cleanUpAfterAnimations: (messageId: string) => void,
@@ -105,7 +105,7 @@ const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
   );
 };
 
-type Props = {
+export type SnackbarProviderProps = {
   maxSimultaneusItems?: number,
   bottomMargin?: number,
   topMargin?: number,
@@ -116,7 +116,7 @@ type Props = {
   animationDuration?: number
 }
 
-export const SnackbarProvider: React.FC<Props> = ({
+export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   children,
   maxSimultaneusItems = 1,
   bottomMargin = 0,
@@ -225,18 +225,26 @@ export const SnackbarProvider: React.FC<Props> = ({
   );
 };
 
-export const useShowSnackbar = (): SnackbarContextData['showSnackbar'] => {
+export const useShowSnackbar = (defaultOpts?: SnackbarOptions): SnackbarContextData['showSnackbar'] => {
   const { showSnackbar } = useContext(SnackbarContext);
 
-  return showSnackbar;
+  return (
+    title: string,
+    opts?: SnackbarOptions,
+  ) => showSnackbar(title, { ...defaultOpts, ...opts });
 };
 
-export const useHideSnackbar = (snackbarId: string): SnackbarContextData['hideSnackbar'] => {
+export const useHideSnackbar = (snackbarId?: string): SnackbarContextData['hideSnackbar'] => {
   const { hideSnackbar } = useContext(SnackbarContext);
 
   return snackbarId
     ? (overrideSnackbarId?: string) => hideSnackbar(overrideSnackbarId || snackbarId)
     : hideSnackbar;
 };
+
+export const useSnackbar = (
+  defaultOpts?: SnackbarOptions,
+): [SnackbarContextData['showSnackbar'], SnackbarContextData['hideSnackbar']] => [useShowSnackbar(defaultOpts), useHideSnackbar()];
+
 
 export default SnackbarContext;

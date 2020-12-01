@@ -1,14 +1,10 @@
 import React from 'react';
 import { Portal } from 'react-native-paper';
 
-import SnackbarCtx, { SnackbarProvider } from './Snackbar';
-import BannerCtx, { BannerProvider } from './Banner';
-import DialogCtx, { DialogProvider } from './Dialog';
+import { SnackbarProvider } from './Snackbar';
+import { BannerProvider } from './Banner';
+import { DialogProvider } from './Dialog';
 
-
-export const SnackbarContext = SnackbarCtx;
-export const BannerContext = BannerCtx;
-export const DialogContext = DialogCtx;
 
 export * from './ErrorBoundary';
 export * from './Banner';

@@ -9,7 +9,7 @@ import { nanoid } from 'nanoid/non-secure';
 import { Action } from './types';
 
 
-type DialogData<T = unknown> = {
+export type DialogData<T = unknown> = {
   id: string,
   title: string,
   dismissable?: boolean,
@@ -19,7 +19,7 @@ type DialogData<T = unknown> = {
   data?: T
 }
 
-type DialogOptions<T = unknown> = {
+export type DialogOptions<T = unknown> = {
   id?: string,
   message?: string,
   description?: string,
@@ -28,17 +28,17 @@ type DialogOptions<T = unknown> = {
   data?: T
 }
 
-type DialogContextData = {
+export type DialogContextData = {
   showDialog: (title: string, options?: DialogOptions) => string,
   hideDialog: (dialogId: string) => void,
 }
 
-const DialogContext = createContext<DialogContextData>({
+export const DialogContext = createContext<DialogContextData>({
   showDialog: () => '',
   hideDialog: () => undefined,
 });
 
-type DialogContextProps = {
+export type DialogContextProps = {
   index: number,
   item: DialogData,
   hideDialog: (dialogId: string) => void,
@@ -77,11 +77,11 @@ const DefaultDialogComponent: React.FC<DialogContextProps> = ({
   );
 };
 
-type Props = {
+export type DialogProviderProps = {
   DialogComponent?: React.FC<DialogContextProps>,
 }
 
-export const DialogProvider: React.FC<Props> = ({
+export const DialogProvider: React.FC<DialogProviderProps> = ({
   children, DialogComponent = DefaultDialogComponent,
 }) => {
   const [dialogs, setDialogs] = useState<DialogData[]>([]),
@@ -147,10 +147,10 @@ export const DialogProvider: React.FC<Props> = ({
   );
 };
 
-export const useShowDialog = (): DialogContextData['showDialog'] => {
+export const useShowDialog = (defaultOpts?: DialogOptions): DialogContextData['showDialog'] => {
   const { showDialog } = useContext(DialogContext);
 
-  return showDialog;
+  return (title: string, opts?: DialogOptions) => showDialog(title, { ...defaultOpts, ...opts });
 };
 
 export const useHideDialog = (dialogId?: string): DialogContextData['hideDialog'] => {
@@ -162,5 +162,8 @@ export const useHideDialog = (dialogId?: string): DialogContextData['hideDialog'
 
   return hideDialog;
 };
+
+export const useDialog = (defaultOpts?: DialogOptions): [DialogContextData['showDialog'], DialogContextData['hideDialog']] => [useShowDialog(defaultOpts), useHideDialog()];
+
 
 export default DialogContext;

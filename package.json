@@ -12,7 +12,10 @@
   "files": [
     "index.tsx",
     "Banner.tsx",
-    "Snackbar.tsx"
+    "Snackbar.tsx",
+    "Dialog.tsx",
+    "ErrorBoundary.tsx",
+    "types.ts"
   ],
   "dependencies": {
     "nanoid": "^3.1.18",
