@@ -10,7 +10,7 @@ export const SnackbarContext = SnackbarCtx;
 export const BannerContext = BannerCtx;
 export const DialogContext = DialogCtx;
 
-export * from './ErrorBoundary';
+
 export * from './Banner';
 export * from './Snackbar';
 export * from './Dialog';
@@ -24,7 +24,7 @@ export const TelegraphProvider: React.FC<Props> = ({ children, maxSimultaneusIte
     <DialogProvider>
       <SnackbarProvider maxSimultaneusItems={maxSimultaneusItems}>
         <BannerProvider maxSimultaneusItems={maxSimultaneusItems}>
-          { children }
+            { children }
         </BannerProvider>
       </SnackbarProvider>
     </DialogProvider>

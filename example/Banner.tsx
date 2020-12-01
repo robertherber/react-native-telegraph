@@ -9,7 +9,7 @@ import type { IconSource } from 'react-native-paper/lib/typescript/src/component
 import { Action } from './types';
 
 
-type BannerData = {
+type Banner = {
   id: string,
   title: string,
   timeout?: number,
@@ -26,7 +26,7 @@ type BannerOptions = {
 }
 
 type BannerContextData = {
-  visibleBanners: Array<BannerData>,
+  visibleBanners: Array<Banner>,
   showBanner: (title: string, options?: BannerOptions) => string,
   hideBanner: (bannerId: string) => void,
 }
@@ -45,20 +45,20 @@ type Props = {
   maxSimultaneusItems?: number
 }
 
-export const BannerProvider: React.FC<Props> = ({ children, maxSimultaneusItems = 2 }) => {
-  const [banners, setBanners] = useState<BannerData[]>([]),
+export const BannerProvider: React.FC<Props> = ({ children, maxSimultaneusItems = 1 }) => {
+  const [banners, setBanners] = useState<Banner[]>([]),
         topItems = useMemo(
-          () => banners.slice(0, maxSimultaneusItems + banners.filter((m) => m.status === 'hidden').length),
+          () => banners.slice(0, maxSimultaneusItems + banners.filter(m => m.status === 'hidden').length),
           [banners, maxSimultaneusItems],
         ),
         deleteBanner = useCallback((bannerId: string) => {
-          setBanners((msgs) => msgs.filter((m) => m.id !== bannerId));
+          setBanners((msgs) => msgs.filter((m) => (m.id !== bannerId)));
         }, []),
         hideBanner = useCallback((bannerId: string) => {
           setBanners((msgs) => msgs.map((m) => (m.id === bannerId ? { ...m, status: 'hidden' } : m)));
           setTimeout(() => {
             deleteBanner(bannerId);
-          }, 500);
+          }, 500)
         }, []),
         showBanner = useCallback((title: string, opts?: BannerOptions) => {
           const bannerId = opts?.id || nanoid(),
@@ -138,22 +138,22 @@ export const BannerArea: React.FC = () => {
   );
 };
 
-export const useShowBanner = (): BannerContextData['showBanner'] => {
+export const useShowBanner = () => {
   const { showBanner } = useContext(BannerContext);
 
   return showBanner;
-};
+}
 
-export const useHideBanner = (bannerId?: string): BannerContextData['hideBanner'] => {
+export const useHideBanner = (bannerId?: string) => {
   const { hideBanner } = useContext(BannerContext);
 
   return (overrideBannerId?: string) => {
     const actualBannerId = bannerId || overrideBannerId as string;
-    if (!actualBannerId) {
-      console.warn('No bannerId was specified to useHideBanner, nothing will happen');
+    if(!actualBannerId){
+      console.warn('No bannerId was specified to useHideBanner, nothing will happen')
     }
     return hideBanner(actualBannerId);
-  };
-};
+  }
+}
 
 export default BannerContext;

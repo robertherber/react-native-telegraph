@@ -64,7 +64,7 @@ const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
   cleanUpAfterAnimations,
   showAnimation,
   hideAnimation,
-  animationDuration,
+  animationDuration
 }) => {
   const delay = index * 100,
         onAnimationEnd = () => {
@@ -109,15 +109,15 @@ type Props = {
 }
 
 export const SnackbarProvider: React.FC<Props> = ({
-  children,
-  maxSimultaneusItems = 1,
-  bottomMargin = 0,
-  topMargin = 0,
-  SnackbarComponent = DefaultSnackbarComponent,
-  defaultTimeout = 5000,
-  animationDuration = 300,
-  showAnimation = 'fadeInDown',
-  hideAnimation = 'fadeOutDown',
+  children, 
+  maxSimultaneusItems = 1, 
+  bottomMargin = 0, 
+  topMargin = 0, 
+  SnackbarComponent = DefaultSnackbarComponent, 
+  defaultTimeout = 5000, 
+  animationDuration = 300, 
+  showAnimation = 'fadeInDown', 
+  hideAnimation = 'fadeOutDown'
 }) => {
   const [snackbars, setSnackbars] = useState<Snackbar[]>([]),
         topSnackbars = useMemo(() => snackbars.filter((m) => m.position === 'top').slice(0, maxSimultaneusItems), [snackbars, maxSimultaneusItems]),
@@ -215,18 +215,18 @@ export const SnackbarProvider: React.FC<Props> = ({
   );
 };
 
-export const useShowSnackbar = (): SnackbarContextData['showSnackbar'] => {
+export const useShowSnackbar = () => {
   const { showSnackbar } = useContext(SnackbarContext);
 
   return showSnackbar;
-};
+}
 
-export const useHideSnackbar = (snackbarId: string): SnackbarContextData['hideSnackbar'] => {
+export const useHideSnackbar = (snackbarId: string) => {
   const { hideSnackbar } = useContext(SnackbarContext);
 
-  return snackbarId
-    ? (overrideSnackbarId?: string) => hideSnackbar(overrideSnackbarId || snackbarId)
+  return snackbarId 
+    ? (overrideSnackbarId?: string) => hideSnackbar(overrideSnackbarId || snackbarId) 
     : hideSnackbar;
-};
+}
 
 export default SnackbarContext;
