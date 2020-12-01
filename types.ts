@@ -24,7 +24,7 @@ export const getNanoID = (): string => nanoid();
 export function useDeepMemo<T>(value: T): T {
   const ref = useRef<{ str: string, value: T | undefined}>({ str: '', value: undefined });
   const str = JSON.stringify(value);
-  if (ref.current.str === '' || str !== JSON.stringify(ref.current)) {
+  if (ref.current.str === '' || str !== ref.current.str) {
     ref.current = { value, str };
   }
 
