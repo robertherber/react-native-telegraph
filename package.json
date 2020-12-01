@@ -1,6 +1,6 @@
 {
   "name": "react-native-telegraph",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "main": "index.tsx",
   "private": false,
   "license": "MIT",
