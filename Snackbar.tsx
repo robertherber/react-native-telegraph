@@ -227,6 +227,14 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   );
 };
 
+export const useShowSnackbar = (defaultOpts?: SnackbarOptions): SnackbarContextData['showSnackbar'] => {
+  const { showSnackbar } = useContext(SnackbarContext);
+
+  return (
+    title: string,
+    opts?: SnackbarOptions,
+  ) => showSnackbar(title, { ...defaultOpts, ...opts });
+};
 
 export const useHideSnackbar = (snackbarId?: string): SnackbarContextData['hideSnackbar'] => {
   const { hideSnackbar } = useContext(SnackbarContext);
