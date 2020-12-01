@@ -11,23 +11,29 @@ import { nanoid } from 'nanoid/non-secure';
 import { Action } from './types';
 
 
-type Snackbar = {
+type Snackbar<T = unknown> = {
   id: string,
   title: string,
   timeout?: number,
   position: 'top' | 'bottom',
   actions: Array<Action>,
   status: 'hidden' | 'visible' | 'queued',
-  data?: any
+  data?: T,
+  animationDuration?: number,
+  showAnimation?: Animatable.Animation,
+  hideAnimation?: Animatable.Animation,
 }
 
-type SnackbarOptions = {
+type SnackbarOptions<T = unknown> = {
   id?: string,
   timeout?: number,
   persistent?: boolean,
   position?: 'top' | 'bottom',
   actions?: Array<Action>,
-  data?: any
+  data?: T
+  animationDuration?: number,
+  showAnimation?: Animatable.Animation,
+  hideAnimation?: Animatable.Animation,
 }
 
 export type SnackbarContextData = {
@@ -72,11 +78,13 @@ const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
             cleanUpAfterAnimations(item.id);
           }
         },
-        animation = item.status === 'hidden' ? hideAnimation : showAnimation;
+        animation = item.status === 'hidden'
+          ? item.hideAnimation || hideAnimation
+          : item.showAnimation || showAnimation;
 
   return (
     <Animatable.View
-      duration={animationDuration}
+      duration={item.animationDuration || animationDuration}
       delay={delay}
       useNativeDriver
       onAnimationEnd={onAnimationEnd}
@@ -144,11 +152,13 @@ export const SnackbarProvider: React.FC<Props> = ({
             }
 
             const newMessages = [...msgs.filter((m) => m.id !== messageId), {
+              ...opts,
               title,
               id: messageId,
               actions,
               position,
               timeout,
+              data: opts?.data,
               status,
             }] as Snackbar[];
 
@@ -157,7 +167,7 @@ export const SnackbarProvider: React.FC<Props> = ({
 
 
           return messageId;
-        }, [maxSimultaneusItems, hideSnackbar]);
+        }, [maxSimultaneusItems, hideSnackbar, defaultTimeout]);
 
   useEffect(() => {
     const items = [...bottomSnackbars, ...topSnackbars].filter((i) => i.status === 'queued');

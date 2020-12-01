@@ -9,20 +9,22 @@ import type { IconSource } from 'react-native-paper/lib/typescript/src/component
 import { Action } from './types';
 
 
-type BannerData = {
+type BannerData<T = unknown> = {
   id: string,
   title: string,
   timeout?: number,
   actions: Array<Action>,
   icon?: IconSource
-  status: 'hidden' | 'visible' | 'queued'
+  status: 'hidden' | 'visible' | 'queued',
+  data?: T
 }
 
-type BannerOptions = {
+type BannerOptions<T = unknown> = {
   id?: string,
   timeout?: number,
   actions?: Array<Action>,
-  icon?: IconSource
+  icon?: IconSource,
+  data?: T
 }
 
 type BannerContextData = {
@@ -39,13 +41,14 @@ const BannerContext = createContext<BannerContextData>({
 
 const styles = StyleSheet.create({
   maxWidth: { width: '100%' },
+  reverse: { flexDirection: 'column-reverse' },
 });
 
 type Props = {
-  maxSimultaneusItems?: number
+  maxSimultaneusItems?: number,
 }
 
-export const BannerProvider: React.FC<Props> = ({ children, maxSimultaneusItems = 2 }) => {
+export const BannerProvider: React.FC<Props> = ({ children, maxSimultaneusItems = 1 }) => {
   const [banners, setBanners] = useState<BannerData[]>([]),
         topItems = useMemo(
           () => banners.slice(0, maxSimultaneusItems + banners.filter((m) => m.status === 'hidden').length),
@@ -59,7 +62,7 @@ export const BannerProvider: React.FC<Props> = ({ children, maxSimultaneusItems 
           setTimeout(() => {
             deleteBanner(bannerId);
           }, 500);
-        }, []),
+        }, [deleteBanner]),
         showBanner = useCallback((title: string, opts?: BannerOptions) => {
           const bannerId = opts?.id || nanoid(),
                 timeout = opts?.timeout,
@@ -75,6 +78,7 @@ export const BannerProvider: React.FC<Props> = ({ children, maxSimultaneusItems 
             }
 
             return [...msgs.filter((m) => m.id !== bannerId), {
+              ...opts,
               title,
               id: bannerId,
               actions,
@@ -116,24 +120,33 @@ export const BannerProvider: React.FC<Props> = ({ children, maxSimultaneusItems 
   );
 };
 
-export const BannerArea: React.FC = () => {
+type BannerComponent = React.FC<{
+  item: BannerData,
+  index: number
+}>
+
+export const BannerArea: React.FC<{ CustomBannerComponent?: BannerComponent }> = ({
+  CustomBannerComponent,
+}) => {
   const { visibleBanners } = useContext(BannerContext);
 
   return (
-    <SafeAreaView style={[styles.maxWidth, { flexDirection: 'column-reverse' }]}>
-      {visibleBanners.map((i) => (
-        <Banner
-          key={i.id}
-          visible={i.status === 'visible'}
-          actions={i.actions.map(({ label, onPress }) => ({
-            label,
-            onPress: () => onPress(i.id),
-          }))}
-          icon={i.icon}
-        >
-          { i.title }
-        </Banner>
-      )) }
+    <SafeAreaView style={[styles.maxWidth, styles.reverse]}>
+      {visibleBanners.map((i, index) => CustomBannerComponent
+        ? <CustomBannerComponent index={index} item={i} />
+        : (
+          <Banner
+            key={i.id}
+            visible={i.status === 'visible'}
+            actions={i.actions.map(({ label, onPress }) => ({
+              label,
+              onPress: () => onPress(i.id),
+            }))}
+            icon={i.icon}
+          >
+            { i.title }
+          </Banner>
+        )) }
     </SafeAreaView>
   );
 };

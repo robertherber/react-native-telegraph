@@ -4,38 +4,42 @@ This library aims to simplify UI handling of in-app messages. More specifically 
 
 ## Snackbars
 
-You can choose whether you want multiple Snackbars to stack (default is showing one at a time) and whether they should be persistent (default is a timeout of 5s). You can choose whether you want the Snackbars to appear on the bottom or top of the screen.
+You can choose whether you want multiple Snackbars to stack (default is showing one at a time, [as recommended](https://material.io/components/snackbars#usage)) and whether they should be persistent (default is a timeout of 5s). You can choose whether you want the Snackbars to appear on the bottom or top of the screen. You can easily override the animation with any of the ones [available here](https://github.com/oblador/react-native-animatable#animations-2), provide a custom Snackbar component to the `<SnackbarProvider />` and send custom data to your custom component.
 
 ```TypeScript
 import { useShowSnackbar } from 'react-native-telegraph';
 
 const showSnackbar = useShowSnackbar();
 
-showSnackbar('Some new information is available', { 
+showSnackbar('Some new information is available', {
   persistent: true,
   actions: [{
     onPress: () => { /* reload */ },
     label: 'Reload'
-  }] 
+  }]
 })
 ```
 
+![Snackbar](https://callstack.github.io/react-native-paper/screenshots/snackbar.gif)
+
 ## Banners (based on react-native-paper)
 
-You can choose whether you want multiple Banners to stack (default is showing one at a time, again). They are persistent by default. They are designed out a bit different so you'll have to choose where to place your `<BannerArea />`
+You can choose whether you want multiple Banners to stack (default is showing one at a time, again [as recommended](https://material.io/components/banners#usage). They are persistent by default. They are designed out a bit different so you'll have to choose where to place your `<BannerArea />`
 
 ```TypeScript
 import { useShowBanner } from 'react-native-telegraph';
 
 const showBanner = useShowBanner();
 
-showBanner('Some new information is available', { 
+showBanner('Some new information is available', {
   actions: [{
     onPress: () => { /* reload */ },
     label: 'Reload'
-  }] 
+  }]
 })
 ```
+
+![Banner](https://callstack.github.io/react-native-paper/screenshots/banner.gif)
 
 ## Dialogs (based on react-native-paper)
 
@@ -46,17 +50,19 @@ import { useShowDialog } from 'react-native-telegraph';
 
 const showDialog = useShowDialog();
 
-showDialog('We need your approval to continue', { 
+showDialog('We need your approval to continue', {
   actions: [{
     onPress: () => { /* do something */ },
     label: 'Maybe later'
   }, {
     onPress: () => { /* do something */ },
     label: 'OK'
-  }] 
+  }]
   
 })
 ```
+
+![Dialog](https://callstack.github.io/react-native-paper/screenshots/dialog-1.png)
 
 ## Provider
 
@@ -72,3 +78,7 @@ const App = ({ children }) => {
   </TelegraphProvider>
 }
 ```
+
+## Customizability
+
+Theming is applied automatically through react-native-paper ([read more](https://callstack.github.io/react-native-paper/theming.html)).

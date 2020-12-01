@@ -9,23 +9,23 @@ import { nanoid } from 'nanoid/non-secure';
 import { Action } from './types';
 
 
-type DialogData = {
+type DialogData<T = unknown> = {
   id: string,
   title: string,
   dismissable?: boolean,
   description?: string,
   actions: Array<Action>,
   status: 'hidden' | 'visible' | 'queued',
-  data?: any
+  data?: T
 }
 
-type DialogOptions = {
+type DialogOptions<T = unknown> = {
   id?: string,
   message?: string,
   description?: string,
   actions?: Array<Action>,
   dismissable?: boolean,
-  data?: any
+  data?: T
 }
 
 type DialogContextData = {
@@ -100,6 +100,7 @@ export const DialogProvider: React.FC<Props> = ({
             const status = msgs.length >= 1 ? 'queued' : 'visible';
 
             const newMessages = [...msgs.filter((m) => m.id !== dialogId), {
+              ...opts,
               title,
               id: dialogId,
               actions,
