@@ -8,6 +8,7 @@ import { DialogProvider } from './Dialog';
 
 export * from './ErrorBoundary';
 export * from './Banner';
+export * from './BannerUI';
 export * from './Snackbar';
 export * from './Dialog';
 

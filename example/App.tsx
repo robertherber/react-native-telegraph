@@ -1,19 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { useContext } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useShowSnackbar } from './Snackbar';
-import BannerContext, { BannerArea } from './Banner';
-import { TelegraphProvider } from './index'
+import { useSnackbar, BannerArea, useBanner, TelegraphProvider, useDialog } from 'react-native-telegraph';
 import { Button } from 'react-native-paper';
-import { useShowDialog } from './Dialog';
-import ErrorBoundaryWrapper from './ErrorBoundary';
+import ErrorBoundaryWrapper from 'react-native-telegraph/ErrorBoundary';
 
 const TelegraphDemo = () => {
 
   const [hey, setHey] = useState(0);
-  const showSnackbar = useShowSnackbar();
-  const { showBanner, hideBanner } = useContext(BannerContext);
-  const showDialog = useShowDialog();
+  const [showSnackbar] = useSnackbar();
+  const [showBanner, hideBanner] = useBanner();
+  const [showDialog] = useDialog();
   
   useEffect(() => {
     showBanner('one', {
@@ -82,7 +78,7 @@ const TelegraphDemo = () => {
 
 export default function App() {
   return (
-    <TelegraphProvider>     
+    <TelegraphProvider maxSimultaneusItems={2}>
       <ErrorBoundaryWrapper>
         <TelegraphDemo />
       </ErrorBoundaryWrapper>

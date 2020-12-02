@@ -1,15 +1,19 @@
 import React, {
-  createContext, useCallback, useContext, useEffect, useMemo, useState, useRef,
+  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import {
   Button, Portal, Surface, Text,
 } from 'react-native-paper';
 import { SafeAreaView, StyleSheet } from 'react-native';
 import * as Animatable from 'react-native-animatable';
+import { Transition, Transitioning, TransitioningView } from 'react-native-reanimated';
 
 import {
-  Action, RawAction, mapActionToRawAction, getNanoID, useDeepMemo,
+  Action, RawAction,
 } from './types';
+import {
+  mapActionToRawAction, getNanoID, useDeepMemo,
+} from './utils';
 
 
 type Snackbar<T = unknown> = {
@@ -118,6 +122,12 @@ export type SnackbarProviderProps = {
   animationDuration?: number
 }
 
+const transition = (
+  <Transition.Together>
+    <Transition.Change interpolation='easeInOut' />
+  </Transition.Together>
+);
+
 export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   children,
   maxSimultaneusItems = 1,
@@ -130,12 +140,18 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   hideAnimation = 'fadeOutDown',
 }) => {
   const [snackbars, setSnackbars] = useState<Snackbar[]>([]),
+        rootRef = useRef<TransitioningView>(),
+        easeInOut = () => {
+          rootRef.current?.animateNextTransition();
+        },
         topSnackbars = useMemo(() => snackbars.filter((m) => m.position === 'top').slice(0, maxSimultaneusItems), [snackbars, maxSimultaneusItems]),
         bottomSnackbars = useMemo(() => snackbars.filter((m) => m.position === 'bottom').slice(0, maxSimultaneusItems), [snackbars, maxSimultaneusItems]),
         hideSnackbar = useCallback((messageId: string) => {
+          easeInOut();
           setSnackbars((msgs) => msgs.map((m) => (m.id === messageId ? { ...m, status: 'hidden' } : m)));
         }, []),
         cleanUpAfterAnimations = useCallback((messageId: string) => {
+          easeInOut();
           setSnackbars((msgs) => msgs.filter((m) => m.id !== messageId));
         }, []),
         showSnackbar = useCallback((title: string, opts?: SnackbarOptions) => {
@@ -145,7 +161,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
                 actions = opts?.actions?.map(mapActionToRawAction(hideSelf))
                   || (opts?.persistent ? [{ onPress: hideSelf, label: 'Hide' }] : []),
                 position = opts?.position || 'bottom';
-
+          easeInOut();
           setSnackbars((msgs) => {
             const status = msgs.filter((m) => m.position === position).length >= maxSimultaneusItems ? 'queued' : 'visible';
 
@@ -178,6 +194,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
     const ids = items.map((i) => i.id);
 
     if (ids.length > 0) {
+      easeInOut();
       setSnackbars((msgs) => msgs.map((m) => (ids.includes(m.id) ? { ...m, status: 'visible' } : m)));
 
       items.forEach((item) => {
@@ -198,32 +215,39 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
     >
       { children }
       <Portal>
-        <SafeAreaView style={[styles.container, { top: topMargin }]}>
-          { topSnackbars.map((i, index) => (
-            <SnackbarComponent
-              key={i.id}
-              item={i}
-              showAnimation={showAnimation}
-              hideAnimation={hideAnimation}
-              animationDuration={animationDuration}
-              index={index}
-              cleanUpAfterAnimations={cleanUpAfterAnimations}
-            />
-          )) }
-        </SafeAreaView>
-        <SafeAreaView style={[styles.container, styles.reverse, { bottom: bottomMargin }]}>
-          { bottomSnackbars.map((i, index) => (
-            <SnackbarComponent
-              key={i.id}
-              item={i}
-              showAnimation={showAnimation}
-              hideAnimation={hideAnimation}
-              animationDuration={animationDuration}
-              index={index}
-              cleanUpAfterAnimations={cleanUpAfterAnimations}
-            />
-          )) }
-        </SafeAreaView>
+        <Transitioning.View
+          style={{ flex: 1 }}
+          transition={transition}
+          pointerEvents='box-none'
+          ref={rootRef}
+        >
+          <SafeAreaView style={[styles.container, { top: topMargin }]}>
+            { topSnackbars.map((i, index) => (
+              <SnackbarComponent
+                key={i.id}
+                item={i}
+                showAnimation={showAnimation}
+                hideAnimation={hideAnimation}
+                animationDuration={animationDuration}
+                index={index}
+                cleanUpAfterAnimations={cleanUpAfterAnimations}
+              />
+            )) }
+          </SafeAreaView>
+          <SafeAreaView style={[styles.container, styles.reverse, { bottom: bottomMargin }]}>
+            { bottomSnackbars.map((i, index) => (
+              <SnackbarComponent
+                key={i.id}
+                item={i}
+                showAnimation={showAnimation}
+                hideAnimation={hideAnimation}
+                animationDuration={animationDuration}
+                index={index}
+                cleanUpAfterAnimations={cleanUpAfterAnimations}
+              />
+            )) }
+          </SafeAreaView>
+        </Transitioning.View>
       </Portal>
     </SnackbarContext.Provider>
   );

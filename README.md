@@ -1,6 +1,6 @@
 # react-native-telegraph
 
-This library aims to simplify UI handling of in-app messages. More specifically dealing with messages that makes sense to show across views and where multiple messages could appear to the user at once. It all revolves around three main types of messages:
+This library aims to simplify in-app message orchestration. More specifically dealing with messages that makes sense to show across views and where multiple messages could appear to the user at once. It all revolves around three main types of messages:
 
 ## Snackbars
 
@@ -82,3 +82,5 @@ const App = ({ children }) => {
 ## Customizability
 
 Theming is applied automatically through react-native-paper ([read more](https://callstack.github.io/react-native-paper/theming.html)).
+
+[Made by Kingstinct AB](https://kingstinct.com)

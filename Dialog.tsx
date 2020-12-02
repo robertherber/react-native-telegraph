@@ -8,8 +8,11 @@ import 'react-native-get-random-values';
 import { nanoid } from 'nanoid';
 
 import {
-  Action, mapActionToRawAction, RawAction, useDeepMemo,
+  Action, RawAction,
 } from './types';
+import {
+  mapActionToRawAction, useDeepMemo,
+} from './utils';
 
 
 export type DialogData<T = unknown> = {
@@ -62,7 +65,11 @@ const DefaultDialogComponent: React.FC<DialogContextProps> = ({
   }, [item, cleanUpAfterAnimations]);
 
   return (
-    <Dialog visible={item.status === 'visible'} onDismiss={() => hideDialog(item.id)} dismissable={item.dismissable}>
+    <Dialog
+      visible={item.status === 'visible'}
+      onDismiss={() => hideDialog(item.id)}
+      dismissable={item.dismissable}
+    >
       <Dialog.Title>{ item.title }</Dialog.Title>
       { item.description
         ? (
