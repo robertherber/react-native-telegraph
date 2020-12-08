@@ -31,7 +31,7 @@ type Snackbar<T = unknown> = {
 }
 
 type SnackbarOptions<T = unknown> = {
-  id?: string,
+  ref?: React.MutableRefObject<string | undefined>,
   timeout?: number,
   persistent?: boolean,
   position?: 'top' | 'bottom',
@@ -45,10 +45,7 @@ type SnackbarOptions<T = unknown> = {
 export type ShowSnackbar<T = unknown> = (
   title: string,
   options?: SnackbarOptions<T>
-) => [
-  response: Promise<T | undefined>,
-  messageId: string
-]
+) => Promise<T | undefined>;
 
 export type SnackbarContextData<T extends any = unknown> = {
   showSnackbar: ShowSnackbar<T>,
@@ -56,7 +53,7 @@ export type SnackbarContextData<T extends any = unknown> = {
 }
 
 const SnackbarContext = createContext<SnackbarContextData>({
-  showSnackbar: () => [Promise.resolve(undefined), ''],
+  showSnackbar: () => Promise.resolve(undefined),
   hideSnackbar: () => undefined,
 });
 
@@ -172,10 +169,14 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         showSnackbar = useCallback(<T extends any = unknown>(
           title: string,
           opts?: SnackbarOptions<T>,
-        ): [Promise<T>, string] => {
-          const messageId = opts?.id || getNanoID(),
+        ): Promise<T> => {
+          const messageId = opts?.ref?.current ? opts.ref.current : getNanoID(),
                 timeout = opts?.timeout || (opts?.persistent ? undefined : defaultTimeout),
                 position = opts?.position || 'bottom';
+
+          if (opts?.ref) {
+            opts.ref.current = messageId; // eslint-disable-line no-param-reassign
+          }
 
           const promise = new Promise<T>((resolve) => {
             const hideSelf = () => {
@@ -218,8 +219,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
             });
           });
 
-
-          return [promise, messageId];
+          return promise;
         }, [maxSimultaneusItems, hideSnackbar, defaultTimeout]);
 
   useEffect(() => {

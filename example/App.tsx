@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { useSnackbar, BannerArea, useBanner, TelegraphProvider, useDialog } from '../index';
 import { Button } from 'react-native-paper';
 import ErrorBoundaryWrapper from '../ErrorBoundary';
@@ -54,7 +54,7 @@ const TelegraphDemo = () => {
       }]
     })*/
     const showDialogAfterSnackbar = async () => {
-      const [response] = showSnackbar('hello world 0', { persistent: true, actions: [
+      const buttonPressed = await showSnackbar('hello world 0', { persistent: true, actions: [
         { 
           label: 'button a', 
           onPress: (messageId) => {
@@ -71,8 +71,6 @@ const TelegraphDemo = () => {
         }
       ] })
 
-      console.log('PROMISE', response);
-      const buttonPressed = await response;
       console.log('buttonPressed', buttonPressed);
 
       if(buttonPressed === 'a'){
