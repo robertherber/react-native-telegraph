@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useSnackbar, BannerArea, useBanner, TelegraphProvider, useDialog } from 'react-native-telegraph';
+import { useSnackbar, BannerArea, useBanner, TelegraphProvider, useDialog } from '../index';
 import { Button } from 'react-native-paper';
-import ErrorBoundaryWrapper from 'react-native-telegraph/ErrorBoundary';
+import ErrorBoundaryWrapper from '../ErrorBoundary';
 
 const TelegraphDemo = () => {
-
   const [hey, setHey] = useState(0);
-  const [showSnackbar] = useSnackbar();
+  const [showSnackbar, hideSnackbar] = useSnackbar<'a' | 'b'>();
   const [showBanner, hideBanner] = useBanner();
   const [showDialog] = useDialog();
   
@@ -27,7 +26,6 @@ const TelegraphDemo = () => {
         onPress: (itemId) => {
           hideBanner(itemId)
           setHey(5)
-          
         },
         label: 'One'
       },{
@@ -55,7 +53,36 @@ const TelegraphDemo = () => {
         label: 'Two'
       }]
     })*/
-    showSnackbar('hello world 0', { persistent: true })
+    const showDialogAfterSnackbar = async () => {
+      const [response] = showSnackbar('hello world 0', { persistent: true, actions: [
+        { 
+          label: 'button a', 
+          onPress: (messageId) => {
+            hideSnackbar(messageId);
+            return 'a'
+          } 
+        },
+        { 
+          label: 'button b', 
+          onPress: (messageId) => {
+            hideSnackbar(messageId);
+            return 'b'
+          } 
+        }
+      ] })
+
+      console.log('PROMISE', response);
+      const buttonPressed = await response;
+      console.log('buttonPressed', buttonPressed);
+
+      if(buttonPressed === 'a'){
+        showDialog('hello world')
+      }
+    }
+
+    void showDialogAfterSnackbar();
+    
+  
     showSnackbar('hello world 1', {  })
     showSnackbar('hello world 2', {  })
     showSnackbar('hello world 3', { timeout: 3000 })
@@ -70,9 +97,7 @@ const TelegraphDemo = () => {
     <BannerArea /> 
     <Button onPress={() => {
       showDialog('hello world')
-      showDialog('hello world 2')
-      showDialog('hello world 3')
-    }}>Testa</Button>
+    }}>Show dialog</Button>
   </View>
 }
 
@@ -85,13 +110,3 @@ export default function App() {
     </TelegraphProvider>
   );
 }
-
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

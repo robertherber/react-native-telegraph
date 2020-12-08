@@ -5,11 +5,24 @@ import { useRef } from 'react';
 import { Action, RawAction } from './types';
 
 
-export const mapActionToRawAction = (onPressHide: RawAction['onPress']) => (
-  a: Action,
-): RawAction => a.onPress === 'hide'
-  ? { label: a.label, onPress: onPressHide }
-  : a as RawAction;
+export function mapActionToRawAction<T = unknown>(onPressHide: RawAction<T>['onPress'], resolve: (value: T | PromiseLike<T> | undefined) => void) {
+  return (
+    a: Action<T>,
+  ): RawAction<T> => ({
+    label: a.label,
+    onPress: (messageId: string) => {
+      const { onPress } = a;
+
+      if (onPress) {
+        const val = onPress(messageId);
+        resolve(val);
+      }
+      if (a.dismiss === undefined || a.dismiss === true) {
+        onPressHide(messageId);
+      }
+    },
+  });
+}
 
 export const getNanoID = (): string => nanoid();
 

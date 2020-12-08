@@ -21,12 +21,13 @@ type Snackbar<T = unknown> = {
   title: string,
   timeout?: number,
   position: 'top' | 'bottom',
-  actions: Array<RawAction>,
+  actions: Array<RawAction<T>>,
   status: 'hidden' | 'visible' | 'queued',
   data?: T,
   animationDuration?: number,
   showAnimation?: Animatable.Animation,
   hideAnimation?: Animatable.Animation,
+  _resolver: (value?: T) => void
 }
 
 type SnackbarOptions<T = unknown> = {
@@ -34,20 +35,28 @@ type SnackbarOptions<T = unknown> = {
   timeout?: number,
   persistent?: boolean,
   position?: 'top' | 'bottom',
-  actions?: Array<Action>,
+  actions?: Array<Action<T>>,
   data?: T
   animationDuration?: number,
   showAnimation?: Animatable.Animation,
   hideAnimation?: Animatable.Animation,
 }
 
-export type SnackbarContextData = {
-  showSnackbar: (title: string, options?: SnackbarOptions) => string,
+export type ShowSnackbar<T = unknown> = (
+  title: string,
+  options?: SnackbarOptions<T>
+) => [
+  response: Promise<T | undefined>,
+  messageId: string
+]
+
+export type SnackbarContextData<T extends any = unknown> = {
+  showSnackbar: ShowSnackbar<T>,
   hideSnackbar: (messageId: string) => void,
 }
 
 const SnackbarContext = createContext<SnackbarContextData>({
-  showSnackbar: () => '',
+  showSnackbar: () => [Promise.resolve(undefined), ''],
   hideSnackbar: () => undefined,
 });
 
@@ -148,45 +157,69 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         bottomSnackbars = useMemo(() => snackbars.filter((m) => m.position === 'bottom').slice(0, maxSimultaneusItems), [snackbars, maxSimultaneusItems]),
         hideSnackbar = useCallback((messageId: string) => {
           easeInOut();
-          setSnackbars((msgs) => msgs.map((m) => (m.id === messageId ? { ...m, status: 'hidden' } : m)));
+          setSnackbars((msgs) => msgs.map((m) => {
+            const isSnackbar = m.id === messageId;
+
+            return isSnackbar
+              ? { ...m, status: 'hidden' }
+              : m;
+          }));
         }, []),
         cleanUpAfterAnimations = useCallback((messageId: string) => {
           easeInOut();
           setSnackbars((msgs) => msgs.filter((m) => m.id !== messageId));
         }, []),
-        showSnackbar = useCallback((title: string, opts?: SnackbarOptions) => {
+        showSnackbar = useCallback(<T extends any = unknown>(
+          title: string,
+          opts?: SnackbarOptions<T>,
+        ): [Promise<T>, string] => {
           const messageId = opts?.id || getNanoID(),
                 timeout = opts?.timeout || (opts?.persistent ? undefined : defaultTimeout),
-                hideSelf = () => hideSnackbar(messageId),
-                actions = opts?.actions?.map(mapActionToRawAction(hideSelf))
-                  || (opts?.persistent ? [{ onPress: hideSelf, label: 'Hide' }] : []),
                 position = opts?.position || 'bottom';
-          easeInOut();
-          setSnackbars((msgs) => {
-            const status = msgs.filter((m) => m.position === position).length >= maxSimultaneusItems ? 'queued' : 'visible';
 
-            if (status === 'visible' && timeout) {
-              setTimeout(() => {
-                hideSnackbar(messageId);
-              }, timeout);
-            }
+          const promise = new Promise<T>((resolve) => {
+            const hideSelf = () => {
+                    hideSnackbar(messageId);
+                    resolve();
+                  },
+                  actions = opts?.actions?.map(mapActionToRawAction<T>(hideSelf, resolve))
+                    || (opts?.persistent
+                      ? [{ onPress: hideSelf, label: 'Hide' }]
+                      : []
+                    );
 
-            const newMessages = [...msgs.filter((m) => m.id !== messageId), {
-              ...opts,
-              title,
-              id: messageId,
-              actions,
-              position,
-              timeout,
-              data: opts?.data,
-              status,
-            }] as Snackbar[];
+            easeInOut();
+            setSnackbars((msgs) => {
+              const status = msgs.filter(
+                (m) => m.position === position,
+              ).length >= maxSimultaneusItems
+                ? 'queued'
+                : 'visible';
 
-            return newMessages;
+              if (status === 'visible' && timeout) {
+                setTimeout(() => {
+                  hideSnackbar(messageId);
+                }, timeout);
+              }
+
+              const newMessages = [...msgs.filter((m) => m.id !== messageId), {
+                ...opts,
+                _resolver: resolve,
+                title,
+                id: messageId,
+                actions,
+                position,
+                timeout,
+                data: opts?.data,
+                status,
+              }] as Snackbar[];
+
+              return newMessages;
+            });
           });
 
 
-          return messageId;
+          return [promise, messageId];
         }, [maxSimultaneusItems, hideSnackbar, defaultTimeout]);
 
   useEffect(() => {
@@ -253,12 +286,17 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   );
 };
 
-export const useShowSnackbar = (defaultOpts?: SnackbarOptions): SnackbarContextData['showSnackbar'] => {
-  const { showSnackbar } = useContext(SnackbarContext);
+export const useShowSnackbar = <T extends any = unknown>(
+  defaultOpts?: SnackbarOptions<T>,
+): ShowSnackbar<T> => {
+  const { showSnackbar } = useContext<SnackbarContextData<T>>(
+    SnackbarContext as React.Context<SnackbarContextData<T>>,
+  );
+
   const memoizedDefaultOpts = useDeepMemo(defaultOpts);
   const overridableShowSnackbar = useCallback((
     title: string,
-    opts?: SnackbarOptions,
+    opts?: SnackbarOptions<T>,
   ) => showSnackbar(
     title,
     { ...memoizedDefaultOpts, ...opts },
@@ -279,9 +317,42 @@ export const useHideSnackbar = (snackbarId?: string): SnackbarContextData['hideS
     : hideSnackbar;
 };
 
-export const useSnackbar = (
-  defaultOpts?: SnackbarOptions,
-): [SnackbarContextData['showSnackbar'], SnackbarContextData['hideSnackbar']] => [useShowSnackbar(defaultOpts), useHideSnackbar()];
+export const useSnackbar = <T extends any = unknown>(
+  defaultOpts?: SnackbarOptions<T>,
+): [ShowSnackbar<T>, SnackbarContextData<T>['hideSnackbar']] => [useShowSnackbar<T>(defaultOpts), useHideSnackbar()];
+/*
+const FakeComponent = () => {
+  const [showSnackbar] = useSnackbar<'hello'>({
+    actions: [{
+      label: 'hello',
+      onPress: () => {
 
+      },
+    }, {
+      label: 'hello',
+      onPress: () => Promise.resolve(1),
+    }],
+  });
+  /* const showSnackbar = useShowSnackbar<1 | 2>({
+    actions: [{
+      label: 'hello',
+      onPress: () => Promise.resolve(2),
+    }, {
+      label: 'hello',
+      onPress: () => Promise.resolve(1),
+    }],
+  });
+
+  showSnackbar('yo', {
+    actions: [{
+      label: 'hide',
+      onPress: 'hide',
+    }, {
+      label: 'yo',
+      onPress: () => 2,
+    }],
+  });
+};
+*/
 
 export default SnackbarContext;
