@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useSnackbar, BannerArea, useBanner, TelegraphProvider, useDialog } from '../index';
-import { Button } from 'react-native-paper';
+import { Button, FAB } from 'react-native-paper';
 import ErrorBoundaryWrapper from '../ErrorBoundary';
+import { useSnackbarAreaHeight } from '../Snackbar';
 
 const TelegraphDemo = () => {
   const [hey, setHey] = useState(0);
   const [showSnackbar, hideSnackbar] = useSnackbar<'a' | 'b'>();
   const [showBanner, hideBanner] = useBanner();
   const [showDialog] = useDialog();
+  const snackbarAreaHeight = useSnackbarAreaHeight();
   
   useEffect(() => {
     showBanner('one', {
@@ -91,11 +93,12 @@ const TelegraphDemo = () => {
     throw new Error('blaha')
   }
 
-  return <View>
-    <BannerArea /> 
+  return <View style={{ flex: 1 }}>
+    <BannerArea />
     <Button onPress={() => {
       showDialog('hello world')
     }}>Show dialog</Button>
+    <FAB icon='plus' style={{ position: 'absolute', right: 10, bottom: snackbarAreaHeight + 10 }} />
   </View>
 }
 

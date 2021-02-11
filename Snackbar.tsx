@@ -16,11 +16,13 @@ import {
 } from './utils';
 
 
+type SnackbarPosition = 'top' | 'bottom';
+
 type Snackbar<T = unknown> = {
   id: string,
   title: string,
   timeout?: number,
-  position: 'top' | 'bottom',
+  position: SnackbarPosition,
   actions: Array<RawAction<T>>,
   status: 'hidden' | 'visible' | 'queued',
   data?: T,
@@ -52,11 +54,15 @@ export type HideSnackbarFn = (messageId: string) => void;
 export type SnackbarContextData<T extends any = unknown> = {
   showSnackbar: ShowSnackbarFn<T>,
   hideSnackbar: HideSnackbarFn,
+  snackbarAreaHeightTop: number,
+  snackbarAreaHeightBottom: number,
 }
 
 const SnackbarContext = createContext<SnackbarContextData>({
   showSnackbar: () => Promise.resolve(undefined),
   hideSnackbar: () => undefined,
+  snackbarAreaHeightTop: 0,
+  snackbarAreaHeightBottom: 0,
 });
 
 
@@ -123,6 +129,8 @@ export type SnackbarProviderProps = {
   maxSimultaneusItems?: number,
   bottomMargin?: number,
   topMargin?: number,
+  leftMargin?: number,
+  rightMargin?: number,
   SnackbarComponent?: React.FC<SnackbarComponentProps>,
   defaultTimeout?: number,
   showAnimation?: Animatable.Animation,
@@ -141,6 +149,8 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   maxSimultaneusItems = 1,
   bottomMargin = 0,
   topMargin = 0,
+  leftMargin = 0,
+  rightMargin = 0,
   SnackbarComponent = DefaultSnackbarComponent,
   defaultTimeout = 5000,
   animationDuration = 300,
@@ -149,6 +159,8 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
 }) => {
   const [snackbars, setSnackbars] = useState<Snackbar[]>([]),
         rootRef = useRef<TransitioningView>(),
+        [snackbarAreaHeightTop, setSnackbarAreaHeightTop] = useState(topMargin),
+        [snackbarAreaHeightBottom, setSnackbarAreaHeightBottom] = useState(bottomMargin),
         easeInOut = () => {
           rootRef.current?.animateNextTransition();
         },
@@ -246,17 +258,28 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
     <SnackbarContext.Provider value={{
       showSnackbar,
       hideSnackbar,
+      snackbarAreaHeightBottom,
+      snackbarAreaHeightTop,
     }}
     >
       { children }
       <Portal>
         <Transitioning.View
-          style={{ flex: 1 }}
+          style={styles.flexOne}
           transition={transition}
           pointerEvents='box-none'
           ref={rootRef}
         >
-          <SafeAreaView style={[styles.container, { top: topMargin }]}>
+          <SafeAreaView
+            style={[styles.container, {
+              top: topMargin,
+              left: leftMargin,
+              right: rightMargin,
+            }]}
+            onLayout={({ nativeEvent }) => {
+              setSnackbarAreaHeightTop(nativeEvent.layout.height);
+            }}
+          >
             { topSnackbars.map((i, index) => (
               <SnackbarComponent
                 key={i.id}
@@ -269,7 +292,16 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
               />
             )) }
           </SafeAreaView>
-          <SafeAreaView style={[styles.container, styles.reverse, { bottom: bottomMargin }]}>
+          <SafeAreaView
+            style={[styles.container, styles.reverse, {
+              bottom: bottomMargin,
+              left: leftMargin,
+              right: rightMargin,
+            }]}
+            onLayout={({ nativeEvent }) => {
+              setSnackbarAreaHeightBottom(nativeEvent.layout.height);
+            }}
+          >
             { bottomSnackbars.map((i, index) => (
               <SnackbarComponent
                 key={i.id}
@@ -317,6 +349,12 @@ export const useHideSnackbar = (snackbarId?: string): HideSnackbarFn => {
   return snackbarId
     ? overridableHideSnackbar
     : hideSnackbar;
+};
+
+export const useSnackbarAreaHeight = (position: SnackbarPosition = 'bottom'): number => {
+  const { snackbarAreaHeightTop, snackbarAreaHeightBottom } = useContext(SnackbarContext);
+
+  return position === 'bottom' ? snackbarAreaHeightBottom : snackbarAreaHeightTop;
 };
 
 export const useSnackbar = <T extends any = unknown>(
