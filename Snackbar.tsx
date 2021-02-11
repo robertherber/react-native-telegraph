@@ -42,14 +42,16 @@ type SnackbarOptions<T = unknown> = {
   hideAnimation?: Animatable.Animation,
 }
 
-export type ShowSnackbar<T = unknown> = (
+export type ShowSnackbarFn<T = unknown> = (
   title: string,
   options?: SnackbarOptions<T>
 ) => Promise<T | undefined>;
 
+export type HideSnackbarFn = (messageId: string) => void;
+
 export type SnackbarContextData<T extends any = unknown> = {
-  showSnackbar: ShowSnackbar<T>,
-  hideSnackbar: (messageId: string) => void,
+  showSnackbar: ShowSnackbarFn<T>,
+  hideSnackbar: HideSnackbarFn,
 }
 
 const SnackbarContext = createContext<SnackbarContextData>({
@@ -76,7 +78,7 @@ export type SnackbarComponentProps = {
   animationDuration: number
 };
 
-const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
+export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
   item,
   index,
   cleanUpAfterAnimations,
@@ -169,7 +171,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         showSnackbar = useCallback(<T extends any = unknown>(
           title: string,
           opts?: SnackbarOptions<T>,
-        ): Promise<T> => {
+        ): Promise<T | void> => {
           const messageId = opts?.ref?.current ? opts.ref.current : getNanoID(),
                 timeout = opts?.timeout || (opts?.persistent ? undefined : defaultTimeout),
                 position = opts?.position || 'bottom';
@@ -178,7 +180,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
             opts.ref.current = messageId; // eslint-disable-line no-param-reassign
           }
 
-          const promise = new Promise<T>((resolve) => {
+          const promise = new Promise<T | void>((resolve) => {
             const hideSelf = () => {
                     hideSnackbar(messageId);
                     resolve();
@@ -288,7 +290,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
 
 export const useShowSnackbar = <T extends any = unknown>(
   defaultOpts?: SnackbarOptions<T>,
-): ShowSnackbar<T> => {
+): ShowSnackbarFn<T> => {
   const { showSnackbar } = useContext<SnackbarContextData<T>>(
     SnackbarContext as React.Context<SnackbarContextData<T>>,
   );
@@ -305,7 +307,7 @@ export const useShowSnackbar = <T extends any = unknown>(
   return overridableShowSnackbar;
 };
 
-export const useHideSnackbar = (snackbarId?: string): SnackbarContextData['hideSnackbar'] => {
+export const useHideSnackbar = (snackbarId?: string): HideSnackbarFn => {
   const { hideSnackbar } = useContext(SnackbarContext);
 
   const overridableHideSnackbar = useCallback((
@@ -319,40 +321,9 @@ export const useHideSnackbar = (snackbarId?: string): SnackbarContextData['hideS
 
 export const useSnackbar = <T extends any = unknown>(
   defaultOpts?: SnackbarOptions<T>,
-): [ShowSnackbar<T>, SnackbarContextData<T>['hideSnackbar']] => [useShowSnackbar<T>(defaultOpts), useHideSnackbar()];
-/*
-const FakeComponent = () => {
-  const [showSnackbar] = useSnackbar<'hello'>({
-    actions: [{
-      label: 'hello',
-      onPress: () => {
-
-      },
-    }, {
-      label: 'hello',
-      onPress: () => Promise.resolve(1),
-    }],
-  });
-  /* const showSnackbar = useShowSnackbar<1 | 2>({
-    actions: [{
-      label: 'hello',
-      onPress: () => Promise.resolve(2),
-    }, {
-      label: 'hello',
-      onPress: () => Promise.resolve(1),
-    }],
-  });
-
-  showSnackbar('yo', {
-    actions: [{
-      label: 'hide',
-      onPress: 'hide',
-    }, {
-      label: 'yo',
-      onPress: () => 2,
-    }],
-  });
-};
-*/
+): [
+  ShowSnackbarFn<T>,
+  HideSnackbarFn
+] => [useShowSnackbar<T>(defaultOpts), useHideSnackbar()];
 
 export default SnackbarContext;

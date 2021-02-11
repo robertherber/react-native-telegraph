@@ -34,9 +34,12 @@ export type DialogOptions<T = unknown> = {
   data?: T
 }
 
+export type ShowDialogFn = (title: string, options?: DialogOptions) => string
+export type HideDialogFn = (dialogId: string) => void;
+
 export type DialogContextData = {
-  showDialog: (title: string, options?: DialogOptions) => string,
-  hideDialog: (dialogId: string) => void,
+  showDialog: ShowDialogFn,
+  hideDialog: HideDialogFn,
 }
 
 export const DialogContext = createContext<DialogContextData>({
@@ -51,7 +54,7 @@ export type DialogContextProps = {
   cleanUpAfterAnimations: (dialogId: string) => void
 };
 
-const DefaultDialogComponent: React.FC<DialogContextProps> = ({
+export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
   item,
   cleanUpAfterAnimations,
   hideDialog,
@@ -164,18 +167,21 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({
   );
 };
 
-export const useShowDialog = (defaultOpts?: DialogOptions): DialogContextData['showDialog'] => {
-  const { showDialog } = useContext(DialogContext);
-  const memoizedDefaultOpts = useDeepMemo(defaultOpts);
-  const overrideShowDialog = useCallback((
-    title: string,
-    opts?: DialogOptions,
-  ) => showDialog(title, { ...memoizedDefaultOpts, ...opts }), [memoizedDefaultOpts, showDialog]);
+export const useShowDialog = (defaultOpts?: DialogOptions): ShowDialogFn => {
+  const { showDialog } = useContext(DialogContext),
+        memoizedDefaultOpts = useDeepMemo(defaultOpts),
+        overrideShowDialog = useCallback((
+          title: string,
+          opts?: DialogOptions,
+        ) => showDialog(
+          title,
+          { ...memoizedDefaultOpts, ...opts },
+        ), [memoizedDefaultOpts, showDialog]);
 
   return overrideShowDialog;
 };
 
-export const useHideDialog = (dialogId?: string): DialogContextData['hideDialog'] => {
+export const useHideDialog = (dialogId?: string): HideDialogFn => {
   const { hideDialog } = useContext(DialogContext);
 
   if (dialogId) {
@@ -185,7 +191,10 @@ export const useHideDialog = (dialogId?: string): DialogContextData['hideDialog'
   return hideDialog;
 };
 
-export const useDialog = (defaultOpts?: DialogOptions): [DialogContextData['showDialog'], DialogContextData['hideDialog']] => [useShowDialog(defaultOpts), useHideDialog()];
+export const useDialog = (defaultOpts?: DialogOptions): [
+  ShowDialogFn,
+  HideDialogFn
+] => [useShowDialog(defaultOpts), useHideDialog()];
 
 
 export default DialogContext;
