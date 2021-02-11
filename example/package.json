@@ -46,5 +46,6 @@
     "react-native": "https://github.com/expo/react-native/archive/sdk-39.0.4.tar.gz",
     "react-native-web": "~0.13.12",
     "typescript": "~3.9.5"
-  }
+  },
+  "version": "0.0.0"
 }
