@@ -62,7 +62,7 @@ export const BannerProvider: React.FC<Props> = ({ children, maxSimultaneusItems 
                 timeout = opts?.timeout,
                 hideSelf = () => hideBanner(bannerId),
                 icon = opts?.icon,
-                actions = opts?.actions?.map(mapActionToRawAction(hideSelf)) || (!timeout ? [{ onPress: hideSelf, label: 'Hide' }] : []);
+                actions = opts?.actions?.map(mapActionToRawAction(hideSelf, () => null)) || (!timeout ? [{ onPress: hideSelf, label: 'Hide' }] : []);
 
           setBanners((msgs) => {
             const status = msgs.length >= maxSimultaneusItems ? 'queued' : 'visible';

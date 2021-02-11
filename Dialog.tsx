@@ -113,7 +113,7 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({
         showDialog = useCallback((title: string, opts?: DialogOptions) => {
           const dialogId = opts?.id || nanoid(),
                 hideSelf = () => hideDialog(dialogId),
-                actions = opts?.actions?.map(mapActionToRawAction(hideSelf))
+                actions = opts?.actions?.map(mapActionToRawAction(hideSelf, () => null))
                   || [{ onPress: () => hideDialog(dialogId), label: 'Hide' }];
 
           setDialogs((msgs) => {

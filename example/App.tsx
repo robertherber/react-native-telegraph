@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { useSnackbar, BannerArea, useBanner, TelegraphProvider, useDialog } from '../index';
+import { useSnackbar, BannerArea, useBanner, TelegraphProvider, useDialog } from './lib/index';
 import { Button, FAB } from 'react-native-paper';
-import ErrorBoundaryWrapper from '../ErrorBoundary';
-import { useSnackbarAreaHeight } from '../Snackbar';
+import ErrorBoundaryWrapper from './lib/ErrorBoundary';
+import { useSnackbarAreaHeight } from './lib/Snackbar';
 
 const TelegraphDemo = () => {
-  const [hey, setHey] = useState(0);
-  const [showSnackbar, hideSnackbar] = useSnackbar<'a' | 'b'>();
-  const [showBanner, hideBanner] = useBanner();
-  const [showDialog] = useDialog();
-  const snackbarAreaHeight = useSnackbarAreaHeight();
+  const [hey, setHey] = useState(0),
+        [showSnackbar, hideSnackbar] = useSnackbar<'a' | 'b'>(),
+        [showBanner, hideBanner] = useBanner(),
+        [showDialog] = useDialog(),
+        snackbarAreaHeight = useSnackbarAreaHeight();
   
   useEffect(() => {
     showBanner('one', {

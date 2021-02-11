@@ -268,6 +268,8 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           style={styles.flexOne}
           transition={transition}
           pointerEvents='box-none'
+          // eslint-disable-next-line
+          // @ts-ignore
           ref={rootRef}
         >
           <SafeAreaView

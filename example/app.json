@@ -4,9 +4,9 @@
     "slug": "react-native-telegraph-example",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./example/assets/icon.png",
+    "icon": "./assets/icon.png",
     "splash": {
-      "image": "./example/assets/splash.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -21,12 +21,12 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./example/assets/adaptive-icon.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       }
     },
     "web": {
-      "favicon": "./example/assets/favicon.png"
+      "favicon": "./assets/favicon.png"
     }
   }
 }

@@ -30,3 +30,7 @@ web-build/
 .DS_Store
 
 .expo
+
+lib/
+
+example/node_modules

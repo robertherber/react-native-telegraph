@@ -1,28 +1,17 @@
 {
-  "name": "react-native-telegraph",
-  "version": "0.0.13",
-  "main": "index.tsx",
-  "private": false,
-  "license": "MIT",
-  "author": {
-    "email": "robert@kingstinct.com",
-    "name": "Robert Herber",
-    "url": "https://kingstinct.com"
+  "name": "react-native-telegraph-example",
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "build": "tsc && cp ./lib/* ./",
+    "lint": "eslint './**/*.{js,ts,tsx}'",
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "eject": "expo eject",
+    "clean-start": "watchman watch-del-all && rm -rf node_modules && yarn && rm -rf /tmp/metro-* && expo start -c",
+    "dev": "nodemon --watch .. -e tsx --ignore lib --exec 'rsync -r --exclude=node_modules --include=*.tsx --include=*.ts --exclude=* .. lib/'"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/robertherber/react-native-telegraph"
-  },
-  "files": [
-    "index.tsx",
-    "Banner.tsx",
-    "Snackbar.tsx",
-    "Dialog.tsx",
-    "ErrorBoundary.tsx",
-    "types.ts",
-    "utils.ts",
-    "BannerUI.tsx"
-  ],
   "dependencies": {
     "@babel/core": "~7.9.0",
     "nanoid": "^3.1.18",
@@ -57,19 +46,5 @@
     "react-native": "https://github.com/expo/react-native/archive/sdk-39.0.4.tar.gz",
     "react-native-web": "~0.13.12",
     "typescript": "~3.9.5"
-  },
-  "peerDependencies": {
-    "react": "*",
-    "react-native": "*"
-  },
-  "scripts": {
-    "build": "tsc --outDir lib",
-    "lint": "eslint './**/*.{js,ts,tsx}'",
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "eject": "expo eject",
-    "clean-start": "watchman watch-del-all && rm -rf node_modules && yarn && rm -rf /tmp/metro-* && expo start -c"
   }
 }

@@ -47,6 +47,8 @@ export const BannerArea: React.FC<BannerAreaProps> = ({
         style={styles.flexOne}
         transition={transition}
         pointerEvents='box-none'
+        // eslint-disable-next-line
+        // @ts-ignore
         ref={rootRef}
       >
         {visibleBanners.map((i, index) => CustomBannerComponent
