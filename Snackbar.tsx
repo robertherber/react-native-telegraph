@@ -33,7 +33,7 @@ type Snackbar<T = unknown> = {
 }
 
 type SnackbarOptions<T = unknown> = {
-  ref?: React.MutableRefObject<string | undefined>,
+  id?: string,
   timeout?: number,
   persistent?: boolean,
   position?: 'top' | 'bottom',
@@ -184,13 +184,9 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           title: string,
           opts?: SnackbarOptions<T>,
         ): Promise<T | void> => {
-          const messageId = opts?.ref?.current ? opts.ref.current : getNanoID(),
+          const messageId = opts?.id ?? getNanoID(),
                 timeout = opts?.timeout || (opts?.persistent ? undefined : defaultTimeout),
                 position = opts?.position || 'bottom';
-
-          if (opts?.ref) {
-            opts.ref.current = messageId; // eslint-disable-line no-param-reassign
-          }
 
           const promise = new Promise<T | void>((resolve) => {
             const hideSelf = () => {
