@@ -4,7 +4,7 @@ export type Action<T = unknown> = {
   dismiss?: boolean
 }
 
-export type RawAction<T = unknown> = {
+export type RawAction = {
   onPress: (messageId: string) => void,
   label: string
 }

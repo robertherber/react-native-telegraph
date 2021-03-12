@@ -23,7 +23,7 @@ type Snackbar<T = unknown> = {
   title: string,
   timeout?: number,
   position: SnackbarPosition,
-  actions: Array<RawAction<T>>,
+  actions: Array<RawAction>,
   status: 'hidden' | 'visible' | 'queued',
   data?: T,
   animationDuration?: number,

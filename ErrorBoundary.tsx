@@ -8,7 +8,7 @@ type Props = {
 }
 
 class ErrorBoundaryComponent extends React.Component<Props> {
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError(/* error: Error */) {
     return {};
   }
 
@@ -32,7 +32,8 @@ export const ErrorBoundaryHandler: React.FC = ({ children }) => {
   return (
     <ErrorBoundaryComponent onError={(error, errorInfo) => {
       showDialog(error.message, {
-        description: errorInfo.componentStack,
+        // eslint-disable-next-line
+        description: errorInfo?.componentStack,
       });
     }}
     >

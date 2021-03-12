@@ -1,7 +1,8 @@
 import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useState,
 } from 'react';
-import type { IconSource } from 'react-native-paper/lib/typescript/src/components/Icon';
+import { IconSource } from 'react-native-paper/lib/typescript/components/Icon';
+
 
 import {
   Action, RawAction,
@@ -56,7 +57,7 @@ export const BannerProvider: React.FC<Props> = ({ children, maxSimultaneusItems 
         }, []),
         hideBanner = useCallback((bannerId: string) => {
           setBanners((msgs) => msgs.map((m) => (m.id === bannerId ? { ...m, status: 'hidden' } : m)));
-        }, [deleteBanner]),
+        }, []),
         showBanner = useCallback((title: string, opts?: BannerOptions) => {
           const bannerId = opts?.id || getNanoID(),
                 timeout = opts?.timeout,

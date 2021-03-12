@@ -8,5 +8,9 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "strict": true
-  }
+  },
+  "exclude": [
+    "lib",
+    "example/lib"
+  ]
 }
