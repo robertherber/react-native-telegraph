@@ -1,5 +1,7 @@
 # react-native-telegraph
 
+![Test](https://github.com/robertherber/react-native-telegraph/workflows/test/badge.svg)
+
 This library aims to simplify in-app message orchestration in React-Native (iOS, Android and web supported). More specifically dealing with messages that makes sense to show across views and where multiple messages could appear to the user at once. It all revolves around three main types of messages:
 
 ## Snackbars
