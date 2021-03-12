@@ -2,15 +2,14 @@
   "name": "react-native-telegraph-example",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
-    "build": "tsc && cp ./lib/* ./",
+    "build": "cd .. && yarn build",
     "lint": "eslint './**/*.{js,ts,tsx}'",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
     "eject": "expo eject",
-    "clean-start": "watchman watch-del-all && rm -rf node_modules && yarn && rm -rf /tmp/metro-* && expo start -c",
-    "dev": "nodemon --watch .. -e tsx --ignore lib --exec 'rsync -r --exclude=node_modules --include=*.tsx --include=*.ts --exclude=* .. lib/'"
+    "clean-start": "watchman watch-del-all && rm -rf node_modules && yarn && rm -rf /tmp/metro-* && expo start -c"
   },
   "dependencies": {
     "@babel/core": "~7.9.0",
@@ -22,7 +21,7 @@
   },
   "devDependencies": {
     "@types/react": "^17.0.0",
-    "@types/react-native": "^0.63.37",
+    "@types/react-native": "0.62",
     "@typescript-eslint/eslint-plugin": "^4.9.0",
     "@typescript-eslint/parser": "^4.9.0",
     "eslint": "7",
