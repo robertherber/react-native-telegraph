@@ -10,11 +10,20 @@ This library aims to simplify in-app message orchestration in React-Native (iOS,
 You can choose whether you want multiple Snackbars to stack (default is showing one at a time, [as recommended](https://material.io/components/snackbars#usage)) and whether they should be persistent (default is a timeout of 5s). You can choose whether you want the Snackbars to appear on the bottom or top of the screen. You can easily override the animation with any of the ones [available here](https://github.com/oblador/react-native-animatable#animations-2), provide a custom Snackbar component to the `<SnackbarProvider />` and send custom data to your custom component.
 
 ```TypeScript
-import { useSnackbar } from 'react-native-telegraph';
+import { useSnackbar, useUpdateSnackbarInsets, useShowsnackbar } from 'react-native-telegraph';
 
+// simply use useShowsnackbar
+
+const showSnackbar = useShowsnackbar();
+
+const onPressHandler = () => {
+  showSnackbar('Something happened');
+}
+
+// if you want more control, there is useSnackbar
 const [showSnackbar, hideSnackbar] = useSnackbar();
 
-showSnackbar('Simple banner');
+showSnackbar('Simple snack');
 showSnackbar('Some new information is available', {
   persistent: true,
   actions: [{
