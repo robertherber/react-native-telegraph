@@ -4,7 +4,10 @@ import React, {
 import {
   Button, Portal, Surface, Text,
 } from 'react-native-paper';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import {
+  Insets,
+  SafeAreaView, StyleSheet, TextStyle, ViewStyle,
+} from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { Transition, Transitioning, TransitioningView } from 'react-native-reanimated';
 
@@ -56,6 +59,7 @@ export type SnackbarContextData<T extends any = unknown> = {
   hideSnackbar: HideSnackbarFn,
   snackbarAreaHeightTop: number,
   snackbarAreaHeightBottom: number,
+  setSnackbarInsets: (insets: React.SetStateAction<Insets>) => void
 }
 
 const SnackbarContext = createContext<SnackbarContextData>({
@@ -63,13 +67,14 @@ const SnackbarContext = createContext<SnackbarContextData>({
   hideSnackbar: () => undefined,
   snackbarAreaHeightTop: 0,
   snackbarAreaHeightBottom: 0,
+  setSnackbarInsets: () => {},
 });
 
 
 const styles = StyleSheet.create({
   container: { left: 0, right: 0, position: 'absolute' },
   surface: {
-    borderRadius: 5, margin: 5, padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
+    borderRadius: 5, margin: 5, padding: 10, paddingLeft: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
   },
   flexOne: { flex: 1 },
   reverse: { flexDirection: 'column-reverse' },
@@ -81,7 +86,9 @@ export type SnackbarComponentProps = {
   cleanUpAfterAnimations: (messageId: string) => void,
   showAnimation: Animatable.Animation,
   hideAnimation: Animatable.Animation,
-  animationDuration: number
+  animationDuration: number,
+  style?: ViewStyle,
+  textStyle?: TextStyle
 };
 
 export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
@@ -91,6 +98,8 @@ export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
   showAnimation,
   hideAnimation,
   animationDuration,
+  style,
+  textStyle,
 }) => {
   const delay = index * 100,
         onAnimationEnd = () => {
@@ -110,8 +119,8 @@ export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
       onAnimationEnd={onAnimationEnd}
       animation={animation}
     >
-      <Surface key={item.id} style={styles.surface}>
-        <Text style={styles.flexOne}>{ item.title }</Text>
+      <Surface key={item.id} style={[styles.surface, style]}>
+        <Text style={[styles.flexOne, textStyle]}>{ item.title }</Text>
         { item.actions.map((a) => (
           <Button
             key={`${a.label}`}
@@ -127,10 +136,9 @@ export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
 
 export type SnackbarProviderProps = {
   maxSimultaneusItems?: number,
-  bottomMargin?: number,
-  topMargin?: number,
-  leftMargin?: number,
-  rightMargin?: number,
+  insets? : Insets,
+  textStyle?: TextStyle,
+  style?: ViewStyle,
   SnackbarComponent?: React.FC<SnackbarComponentProps>,
   defaultTimeout?: number,
   showAnimation?: Animatable.Animation,
@@ -146,11 +154,10 @@ const transition = (
 
 export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   children,
+  textStyle,
+  style,
   maxSimultaneusItems = 1,
-  bottomMargin = 0,
-  topMargin = 0,
-  leftMargin = 0,
-  rightMargin = 0,
+  insets: initialInsets = {},
   SnackbarComponent = DefaultSnackbarComponent,
   defaultTimeout = 5000,
   animationDuration = 300,
@@ -159,12 +166,20 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
 }) => {
   const [snackbars, setSnackbars] = useState<Snackbar[]>([]),
         rootRef = useRef<TransitioningView>(),
-        [snackbarAreaHeightTop, setSnackbarAreaHeightTop] = useState(topMargin),
-        [snackbarAreaHeightBottom, setSnackbarAreaHeightBottom] = useState(bottomMargin),
+        [insets, setInsets] = useState(() => ({
+          bottom: 0,
+          left: 0,
+          right: 0,
+          top: 0,
+          ...initialInsets,
+        })),
+        [snackbarAreaHeightTop, setSnackbarAreaHeightTop] = useState(insets.top || 0),
+        [snackbarAreaHeightBottom, setSnackbarAreaHeightBottom] = useState(insets.bottom || 0),
         easeInOut = () => {
           rootRef.current?.animateNextTransition();
         },
         topSnackbars = useMemo(() => snackbars.filter((m) => m.position === 'top').slice(0, maxSimultaneusItems), [snackbars, maxSimultaneusItems]),
+        setSnackbarInsets = useCallback((ins) => setInsets(ins), [initialInsets]),
         bottomSnackbars = useMemo(() => snackbars.filter((m) => m.position === 'bottom').slice(0, maxSimultaneusItems), [snackbars, maxSimultaneusItems]),
         hideSnackbar = useCallback((messageId: string) => {
           easeInOut();
@@ -253,6 +268,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   return (
     <SnackbarContext.Provider value={{
       showSnackbar,
+      setSnackbarInsets,
       hideSnackbar,
       snackbarAreaHeightBottom,
       snackbarAreaHeightTop,
@@ -270,9 +286,9 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         >
           <SafeAreaView
             style={[styles.container, {
-              top: topMargin,
-              left: leftMargin,
-              right: rightMargin,
+              top: insets.top || 0,
+              left: insets.left || 0,
+              right: insets.right || 0,
             }]}
             onLayout={({ nativeEvent }) => {
               setSnackbarAreaHeightTop(nativeEvent.layout.height);
@@ -286,15 +302,17 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
                 hideAnimation={hideAnimation}
                 animationDuration={animationDuration}
                 index={index}
+                style={style}
+                textStyle={textStyle}
                 cleanUpAfterAnimations={cleanUpAfterAnimations}
               />
             )) }
           </SafeAreaView>
           <SafeAreaView
             style={[styles.container, styles.reverse, {
-              bottom: bottomMargin,
-              left: leftMargin,
-              right: rightMargin,
+              bottom: insets.bottom || 0,
+              left: insets.left || 0,
+              right: insets.right || 0,
             }]}
             onLayout={({ nativeEvent }) => {
               setSnackbarAreaHeightBottom(nativeEvent.layout.height);
@@ -308,6 +326,8 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
                 hideAnimation={hideAnimation}
                 animationDuration={animationDuration}
                 index={index}
+                style={style}
+                textStyle={textStyle}
                 cleanUpAfterAnimations={cleanUpAfterAnimations}
               />
             )) }
@@ -353,6 +373,35 @@ export const useSnackbarAreaHeight = (position: SnackbarPosition = 'bottom'): nu
   const { snackbarAreaHeightTop, snackbarAreaHeightBottom } = useContext(SnackbarContext);
 
   return position === 'bottom' ? snackbarAreaHeightBottom : snackbarAreaHeightTop;
+};
+
+export const useUpdateSnackbarInsets = (insets: Insets, isEnabled = true): void => {
+  const { setSnackbarInsets } = useContext(SnackbarContext);
+
+  useEffect(() => {
+    if (isEnabled) {
+      let prevInsets: Insets = {};
+
+      setSnackbarInsets((previousInsets) => {
+        prevInsets = previousInsets;
+
+        const retVal = {
+          ...previousInsets,
+          ...insets,
+        };
+
+        return retVal;
+      });
+
+      return () => {
+        setSnackbarInsets(prevInsets);
+      };
+    }
+    return () => {};
+
+    // we just want to update if the insets objects properties have changed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEnabled, insets.bottom, insets.left, insets.right, insets.top, setSnackbarInsets]);
 };
 
 export const useSnackbar = <T extends any = unknown>(

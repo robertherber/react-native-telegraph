@@ -31,6 +31,9 @@ const snackbarId = showSnackbar('lets hide this in another way');
 
 // ...
 hideSnackbar(snackbarId)
+
+// control insets of the Snackbar in a specific view
+useUpdateSnackbarInsets({ bottom: 50 })
 ```
 
 ![Snackbar](https://callstack.github.io/react-native-paper/screenshots/snackbar.gif)
