@@ -179,7 +179,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           rootRef.current?.animateNextTransition();
         },
         topSnackbars = useMemo(() => snackbars.filter((m) => m.position === 'top').slice(0, maxSimultaneusItems), [snackbars, maxSimultaneusItems]),
-        setSnackbarInsets = useCallback((ins) => setInsets(ins), [initialInsets]),
+        setSnackbarInsets = useCallback((ins) => setInsets(ins), []),
         bottomSnackbars = useMemo(() => snackbars.filter((m) => m.position === 'bottom').slice(0, maxSimultaneusItems), [snackbars, maxSimultaneusItems]),
         hideSnackbar = useCallback((messageId: string) => {
           easeInOut();
@@ -246,6 +246,10 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
 
           return promise;
         }, [maxSimultaneusItems, hideSnackbar, defaultTimeout]);
+
+  useEffect(() => {
+    setInsets((prev) => ({ ...prev, ...initialInsets }));
+  }, [initialInsets]);
 
   useEffect(() => {
     const items = [...bottomSnackbars, ...topSnackbars].filter((i) => i.status === 'queued');
