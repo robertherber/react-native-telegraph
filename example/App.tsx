@@ -63,8 +63,6 @@ const TelegraphDemo = () => {
     void showDialogAfterSnackbar();
   }, []);
 
-  console.log('snackbarAreaHeight', snackbarAreaHeight)
-
   return <View style={{ flex: 1 }}>
     <Button onPress={() => {
       showDialog('hello world')

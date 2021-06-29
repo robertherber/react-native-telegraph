@@ -1,3 +1,7 @@
 node_modules
 example
 lib
+
+
+/*.js
+/*.d.ts
