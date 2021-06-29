@@ -15,21 +15,17 @@
   },
   "files": [
     "index.js",
-    "Banner.js",
     "Snackbar.js",
     "Dialog.js",
     "ErrorBoundary.js",
     "types.js",
     "utils.js",
-    "BannerUI.js",
     "index.d.ts",
-    "Banner.d.ts",
     "Snackbar.d.ts",
     "Dialog.d.ts",
     "ErrorBoundary.d.ts",
     "types.d.ts",
-    "utils.d.ts",
-    "BannerUI.d.ts"
+    "utils.d.ts"
   ],
   "dependencies": {
     "@babel/core": "~7.9.0",

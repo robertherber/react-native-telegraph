@@ -1,71 +1,45 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { useSnackbar, BannerArea, useBanner, TelegraphProvider, useDialog } from 'react-native-telegraph';
-import { Button, FAB } from 'react-native-paper';
+import { useSnackbar, TelegraphProvider, useDialog } from 'react-native-telegraph';
+import { Button, FAB, Switch, Text } from 'react-native-paper';
 import ErrorBoundaryWrapper from 'react-native-telegraph/ErrorBoundary';
-import { useSnackbarAreaHeight } from 'react-native-telegraph/Snackbar';
+import { useSnackbarAreaHeight, useUpdateSnackbarInsets } from 'react-native-telegraph/Snackbar';
+import * as Animatable from 'react-native-animatable';
+
+const ViewWithError: React.FC<{ showError: boolean}> = ({ showError }) => {
+
+  useEffect(() => {
+    if(showError){
+      throw new Error('blaha')
+    }
+  }, [showError])
+
+  return null;
+}
 
 const TelegraphDemo = () => {
   const [hey, setHey] = useState(0),
         [showSnackbar, hideSnackbar] = useSnackbar<'a' | 'b'>(),
-        [showBanner, hideBanner] = useBanner(),
         [showDialog] = useDialog(),
-        snackbarAreaHeight = useSnackbarAreaHeight();
+        [persistent, setPersistent] = useState(false),
+        snackbarAreaHeight = useSnackbarAreaHeight(),
+        [bottom, setBottom] = useState(0),
+        [count, setCount] = useState(1);
+
+  useUpdateSnackbarInsets({ bottom }, true);
   
   useEffect(() => {
-    showBanner('one', {
-      actions: [{
-        onPress: hideBanner,
-        label: 'One'
-      },{
-        onPress: hideBanner,
-        label: 'Two'
-      }],
-      icon: 'youtube-subscription'
-    })
-    showBanner('two', {
-      actions: [{
-        onPress: (itemId) => {
-          hideBanner(itemId)
-          setHey(5)
-        },
-        label: 'One'
-      },{
-        onPress: hideBanner,
-        label: 'Two'
-      }],
-      icon: 'youtube-subscription'
-    })
-    showBanner('three', {
-      actions: [{
-        onPress: hideBanner,
-        label: 'One'
-      },{
-        onPress: hideBanner,
-        label: 'Two'
-      }],
-      icon: 'youtube-subscription'
-    })
-    /*showSnackbar('hello world with a verryrsdfgdsfgsdfg sdfg sdfg sdfg sdfg sdfg sdfg s 1', {
-      actions: [{
-        onPress: hideSnackbar,
-        label: 'One'
-      },{
-        onPress: hideSnackbar,
-        label: 'Two'
-      }]
-    })*/
     const showDialogAfterSnackbar = async () => {
-      const buttonPressed = await showSnackbar('hello world 0', { persistent: true, actions: [
+      const buttonPressed = await showSnackbar('static snackbar', { persistent: true, actions: [
         { 
-          label: 'button a', 
+          label: 'Show dialog', 
           onPress: (messageId) => {
             hideSnackbar(messageId);
             return 'a'
           } 
         },
         { 
-          label: 'button b', 
+          label: 'Hide', 
           onPress: (messageId) => {
             hideSnackbar(messageId);
             return 'b'
@@ -76,29 +50,39 @@ const TelegraphDemo = () => {
       console.log('buttonPressed', buttonPressed);
 
       if(buttonPressed === 'a'){
-        showDialog('hello world')
+        showDialog('a dialog', {
+          description: 'with a description',
+          actions: [{
+            label: 'simulate error',
+            onPress: () => setHey(5)
+          }]
+        })
       }
     }
 
     void showDialogAfterSnackbar();
-    
-  
-    showSnackbar('hello world 1', {  })
-    showSnackbar('hello world 2', {  })
-    showSnackbar('hello world 3', { timeout: 3000 })
-
   }, []);
 
-  if(hey === 5){
-    throw new Error('blaha')
-  }
+  console.log('snackbarAreaHeight', snackbarAreaHeight)
 
   return <View style={{ flex: 1 }}>
-    <BannerArea />
     <Button onPress={() => {
       showDialog('hello world')
     }}>Show dialog</Button>
-    <FAB icon='plus' style={{ position: 'absolute', right: 10, bottom: snackbarAreaHeight + 10 }} />
+    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+      <Text style={{padding: 10 }}>Persistent</Text>
+      <Switch onValueChange={value => setPersistent(value)} value={persistent} />
+    </View>
+    <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+      <Button onPress={() => setBottom(Math.random() * 100)}>Randomize bottom inset</Button>
+    </View>
+    <Animatable.View style={{ position: 'absolute', right: 10, bottom: snackbarAreaHeight + 10 }} transition='bottom'>
+      <ViewWithError showError={hey === 5} />
+      <FAB icon='plus'  onPress={() => {
+        setCount(c => c + 1);
+        showSnackbar('snackbar ' + count, { persistent });
+      }} />
+    </Animatable.View>
   </View>
 }
 

@@ -1,17 +1,16 @@
 import React, {
-  createContext, useCallback, useContext, useEffect, useMemo, useState,
+  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import {
   Button, Portal, Surface, Text,
 } from 'react-native-paper';
 import {
   Insets,
-  LayoutAnimation,
-  View,
   SafeAreaView,
   StyleSheet,
   TextStyle,
   ViewStyle,
+  Animated,
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 
@@ -23,13 +22,10 @@ import {
 } from './utils';
 
 
-type SnackbarPosition = 'top' | 'bottom';
-
 type Snackbar<T = unknown> = {
   id: string,
   title: string,
   timeout?: number,
-  position: SnackbarPosition,
   actions: Array<RawAction>,
   status: 'hidden' | 'visible' | 'queued',
   data?: T,
@@ -43,7 +39,6 @@ type SnackbarOptions<T = unknown> = {
   id?: string,
   timeout?: number,
   persistent?: boolean,
-  position?: 'top' | 'bottom',
   actions?: Array<Action<T>>,
   data?: T
   animationDuration?: number,
@@ -61,16 +56,14 @@ export type HideSnackbarFn = (messageId: string) => void;
 export type SnackbarContextData<T extends any = unknown> = {
   showSnackbar: ShowSnackbarFn<T>,
   hideSnackbar: HideSnackbarFn,
-  snackbarAreaHeightTop: number,
-  snackbarAreaHeightBottom: number,
+  snackbarAreaHeight: number,
   setSnackbarInsets: (insets: React.SetStateAction<Insets>) => void
 }
 
 const SnackbarContext = createContext<SnackbarContextData>({
   showSnackbar: () => Promise.resolve(undefined),
   hideSnackbar: () => undefined,
-  snackbarAreaHeightTop: 0,
-  snackbarAreaHeightBottom: 0,
+  snackbarAreaHeight: 0,
   setSnackbarInsets: () => {},
 });
 
@@ -92,7 +85,8 @@ export type SnackbarComponentProps = {
   hideAnimation: Animatable.Animation,
   animationDuration: number,
   style?: ViewStyle,
-  textStyle?: TextStyle
+  textStyle?: TextStyle,
+  onHeight: (height: number) => void,
 };
 
 export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
@@ -104,6 +98,7 @@ export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
   animationDuration,
   style,
   textStyle,
+  onHeight,
 }) => {
   const delay = index * 100,
         onAnimationEnd = () => {
@@ -123,7 +118,11 @@ export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
       onAnimationEnd={onAnimationEnd}
       animation={animation}
     >
-      <Surface key={item.id} style={[styles.surface, style]}>
+      <Surface
+        key={item.id}
+        style={[styles.surface, style]}
+        onLayout={({ nativeEvent }) => onHeight(nativeEvent.layout.height + 10)}
+      >
         <Text style={[styles.flexOne, textStyle]}>{ item.title }</Text>
         { item.actions.map((a) => (
           <Button
@@ -172,23 +171,33 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           top: 0,
           ...initialInsets,
         })),
-        [snackbarAreaHeightTop, setSnackbarAreaHeightTop] = useState(insets.top || 0),
-        [snackbarAreaHeightBottom, setSnackbarAreaHeightBottom] = useState(insets.bottom || 0),
-        topSnackbars = useMemo(() => snackbars.filter((m) => m.position === 'top').slice(0, maxSimultaneusItems), [snackbars, maxSimultaneusItems]),
+        [snackbarAreaHeightBottom, setSnackbarAreaHeightBottom] = useState(0),
+        translateY = useRef(new Animated.Value(0)),
+        snackbarHeights = useRef<Record<string, number>>({}),
         setSnackbarInsets = useCallback((ins) => setInsets(ins), []),
-        bottomSnackbars = useMemo(() => snackbars.filter((m) => m.position === 'bottom').slice(0, maxSimultaneusItems), [snackbars, maxSimultaneusItems]),
+        bottomSnackbars = useMemo(() => snackbars.slice(0, maxSimultaneusItems), [
+          snackbars,
+          maxSimultaneusItems,
+        ]),
         hideSnackbar = useCallback((messageId: string) => {
-          LayoutAnimation.easeInEaseOut();
           setSnackbars((msgs) => msgs.map((m) => {
-            const isSnackbar = m.id === messageId;
+            const isSnackbarToHide = m.id === messageId;
 
-            return isSnackbar
+            return isSnackbarToHide
               ? { ...m, status: 'hidden' }
               : m;
           }));
         }, []),
         cleanUpAfterAnimations = useCallback((messageId: string) => {
-          LayoutAnimation.easeInEaseOut();
+          const height = snackbarHeights.current[messageId];
+          if (height) {
+            translateY.current.setValue(height);
+            Animated.timing(translateY.current, {
+              toValue: 0,
+              useNativeDriver: true,
+            }).start();
+          }
+
           setSnackbars((msgs) => msgs.filter((m) => m.id !== messageId));
         }, []),
         showSnackbar = useCallback(<T extends any = unknown>(
@@ -196,8 +205,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           opts?: SnackbarOptions<T>,
         ): Promise<T | void> => {
           const messageId = opts?.id ?? getRandomID(),
-                timeout = opts?.timeout || (opts?.persistent ? undefined : defaultTimeout),
-                position = opts?.position || 'bottom';
+                timeout = opts?.timeout || (opts?.persistent ? undefined : defaultTimeout);
 
           const promise = new Promise<T | void>((resolve) => {
             const hideSelf = () => {
@@ -210,11 +218,8 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
                       : []
                     );
 
-            LayoutAnimation.easeInEaseOut();
             setSnackbars((msgs) => {
-              const status = msgs.filter(
-                (m) => m.position === position,
-              ).length >= maxSimultaneusItems
+              const status = msgs.length >= maxSimultaneusItems
                 ? 'queued'
                 : 'visible';
 
@@ -230,7 +235,6 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
                 title,
                 id: messageId,
                 actions,
-                position,
                 timeout,
                 data: opts?.data,
                 status,
@@ -253,12 +257,12 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
     }));
   }, [initialInsets.bottom, initialInsets.top, initialInsets.left, initialInsets.right]);
 
+
   useEffect(() => {
-    const items = [...bottomSnackbars, ...topSnackbars].filter((i) => i.status === 'queued');
+    const items = bottomSnackbars.filter((i) => i.status === 'queued');
     const ids = items.map((i) => i.id);
 
     if (ids.length > 0) {
-      LayoutAnimation.easeInEaseOut();
       setSnackbars((msgs) => msgs.map((m) => (ids.includes(m.id) ? { ...m, status: 'visible' } : m)));
 
       items.forEach((item) => {
@@ -269,69 +273,58 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         }
       });
     }
-  }, [bottomSnackbars, topSnackbars, hideSnackbar]);
+  }, [bottomSnackbars, hideSnackbar]);
 
   return (
     <SnackbarContext.Provider value={{
       showSnackbar,
       setSnackbarInsets,
       hideSnackbar,
-      snackbarAreaHeightBottom,
-      snackbarAreaHeightTop,
+      snackbarAreaHeight: snackbarAreaHeightBottom + insets.bottom,
     }}
     >
       { children }
       <Portal>
-        <View pointerEvents='box-none' style={styles.flexOne}>
-          <SafeAreaView
+        <SafeAreaView pointerEvents='box-none' style={styles.flexOne}>
+
+          <Animatable.View
+            pointerEvents='box-none'
             style={[styles.container, {
-              top: insets.top || 0,
-              left: insets.left || 0,
-              right: insets.right || 0,
-            }]}
-            onLayout={({ nativeEvent }) => {
-              setSnackbarAreaHeightTop(nativeEvent.layout.height);
-            }}
-          >
-            { topSnackbars.map((i, index) => (
-              <SnackbarComponent
-                key={i.id}
-                item={i}
-                showAnimation={showAnimation}
-                hideAnimation={hideAnimation}
-                animationDuration={animationDuration}
-                index={index}
-                style={style}
-                textStyle={textStyle}
-                cleanUpAfterAnimations={cleanUpAfterAnimations}
-              />
-            )) }
-          </SafeAreaView>
-          <SafeAreaView
-            style={[styles.container, styles.reverse, {
               bottom: insets.bottom || 0,
               left: insets.left || 0,
               right: insets.right || 0,
             }]}
-            onLayout={({ nativeEvent }) => {
-              setSnackbarAreaHeightBottom(nativeEvent.layout.height);
-            }}
+            transition={['bottom', 'left', 'right']}
           >
-            { bottomSnackbars.map((i, index) => (
-              <SnackbarComponent
-                key={i.id}
-                item={i}
-                showAnimation={showAnimation}
-                hideAnimation={hideAnimation}
-                animationDuration={animationDuration}
-                index={index}
-                style={style}
-                textStyle={textStyle}
-                cleanUpAfterAnimations={cleanUpAfterAnimations}
-              />
-            )) }
-          </SafeAreaView>
-        </View>
+            <Animated.View
+              style={[styles.reverse, {
+                transform: [{
+                  translateY: Animated.multiply(-1, translateY.current),
+                }],
+              }]}
+              onLayout={({ nativeEvent }) => {
+                setSnackbarAreaHeightBottom(nativeEvent.layout.height);
+              }}
+            >
+              { bottomSnackbars.map((i, index) => (
+                <SnackbarComponent
+                  key={i.id}
+                  item={i}
+                  showAnimation={showAnimation}
+                  hideAnimation={hideAnimation}
+                  animationDuration={animationDuration}
+                  index={index}
+                  style={style}
+                  textStyle={textStyle}
+                  cleanUpAfterAnimations={cleanUpAfterAnimations}
+                  onHeight={(height) => {
+                    snackbarHeights.current[i.id] = height;
+                  }}
+                />
+              )) }
+            </Animated.View>
+          </Animatable.View>
+        </SafeAreaView>
       </Portal>
     </SnackbarContext.Provider>
   );
@@ -368,10 +361,10 @@ export const useHideSnackbar = (snackbarId?: string): HideSnackbarFn => {
     : hideSnackbar;
 };
 
-export const useSnackbarAreaHeight = (position: SnackbarPosition = 'bottom'): number => {
-  const { snackbarAreaHeightTop, snackbarAreaHeightBottom } = useContext(SnackbarContext);
+export const useSnackbarAreaHeight = (): number => {
+  const { snackbarAreaHeight } = useContext(SnackbarContext);
 
-  return position === 'bottom' ? snackbarAreaHeightBottom : snackbarAreaHeightTop;
+  return snackbarAreaHeight;
 };
 
 export const useUpdateSnackbarInsets = (insets: Insets, isEnabled = true): void => {
