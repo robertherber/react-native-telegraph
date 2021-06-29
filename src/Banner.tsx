@@ -7,7 +7,7 @@ import { IconSource } from 'react-native-paper/lib/typescript/components/Icon';
 import {
   Action, RawAction,
 } from './types';
-import { getNanoID, mapActionToRawAction, useDeepMemo } from './utils';
+import { getRandomID, mapActionToRawAction, useDeepMemo } from './utils';
 
 
 export type BannerData<T = unknown> = {
@@ -59,7 +59,7 @@ export const BannerProvider: React.FC<Props> = ({ children, maxSimultaneusItems 
           setBanners((msgs) => msgs.map((m) => (m.id === bannerId ? { ...m, status: 'hidden' } : m)));
         }, []),
         showBanner = useCallback((title: string, opts?: BannerOptions) => {
-          const bannerId = opts?.id || getNanoID(),
+          const bannerId = opts?.id || getRandomID(),
                 timeout = opts?.timeout,
                 hideSelf = () => hideBanner(bannerId),
                 icon = opts?.icon,

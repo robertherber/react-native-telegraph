@@ -1,5 +1,3 @@
-import 'react-native-get-random-values';
-import { nanoid } from 'nanoid';
 import { useRef } from 'react';
 
 import { Action, RawAction } from './types';
@@ -24,7 +22,7 @@ export function mapActionToRawAction<T = unknown>(onPressHide: RawAction['onPres
   });
 }
 
-export const getNanoID = (): string => nanoid();
+export const getRandomID = (): string => `_${Math.random().toString(36).substr(2, 9)}`;
 
 export function useDeepMemo<T>(value: T): T {
   const ref = useRef<{ str: string, value: T | undefined}>({ str: '', value: undefined });

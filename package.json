@@ -1,7 +1,7 @@
 {
   "name": "react-native-telegraph",
   "version": "0.1.1",
-  "main": "index.tsx",
+  "main": "index.js",
   "private": false,
   "license": "MIT",
   "author": {
@@ -14,26 +14,30 @@
     "url": "https://github.com/robertherber/react-native-telegraph"
   },
   "files": [
-    "index.tsx",
-    "Banner.tsx",
-    "Snackbar.tsx",
-    "Dialog.tsx",
-    "ErrorBoundary.tsx",
-    "types.ts",
-    "utils.ts",
-    "BannerUI.tsx"
+    "index.js",
+    "Banner.js",
+    "Snackbar.js",
+    "Dialog.js",
+    "ErrorBoundary.js",
+    "types.js",
+    "utils.js",
+    "BannerUI.js",
+    "index.d.ts",
+    "Banner.d.ts",
+    "Snackbar.d.ts",
+    "Dialog.d.ts",
+    "ErrorBoundary.d.ts",
+    "types.d.ts",
+    "utils.d.ts",
+    "BannerUI.d.ts"
   ],
   "dependencies": {
     "@babel/core": "~7.9.0",
-    "nanoid": "^3.1.18",
-    "react-native-animatable": "^1.3.3",
-    "react-native-get-random-values": "^1.5.0",
-    "react-native-paper": "4.7.1",
-    "react-native-reanimated": "2"
+    "react-native-animatable": "^1.3.3"
   },
   "devDependencies": {
-    "@types/react": "^17.0.0",
-    "@types/react-native": "0.62",
+    "@types/react": "16",
+    "@types/react-native": "0.63",
     "@typescript-eslint/eslint-plugin": "^4.9.0",
     "@typescript-eslint/parser": "^4.9.0",
     "concurrently": "^6.0.0",
@@ -57,12 +61,14 @@
     "react": "16.13",
     "react-dom": "16.13",
     "react-native": "https://github.com/expo/react-native/archive/sdk-39.0.4.tar.gz",
+    "react-native-paper": "4.9",
     "react-native-web": "~0.13.12",
     "typescript": "4"
   },
   "peerDependencies": {
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "react-native-paper": "*"
   },
   "scripts": {
     "build": "tsc",

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { useSnackbar, BannerArea, useBanner, TelegraphProvider, useDialog } from './lib/index';
+import { useSnackbar, BannerArea, useBanner, TelegraphProvider, useDialog } from 'react-native-telegraph';
 import { Button, FAB } from 'react-native-paper';
-import ErrorBoundaryWrapper from './lib/ErrorBoundary';
-import { useSnackbarAreaHeight } from './lib/Snackbar';
+import ErrorBoundaryWrapper from 'react-native-telegraph/ErrorBoundary';
+import { useSnackbarAreaHeight } from 'react-native-telegraph/Snackbar';
 
 const TelegraphDemo = () => {
   const [hey, setHey] = useState(0),

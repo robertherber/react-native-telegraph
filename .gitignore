@@ -34,3 +34,7 @@ web-build/
 lib/
 
 example/node_modules
+
+# ignore output files in root
+/*.d.ts
+/*.js

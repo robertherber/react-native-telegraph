@@ -4,20 +4,20 @@
   "scripts": {
     "build": "cd .. && yarn build",
     "lint": "eslint './**/*.{js,ts,tsx}'",
-    "start": "expo start",
+    "start": "yarn postinstall && expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
     "eject": "expo eject",
-    "clean-start": "watchman watch-del-all && rm -rf node_modules && yarn && rm -rf /tmp/metro-* && expo start -c"
+    "copy-lib": "rsync --delete -av --progress ../ ./node_modules/react-native-telegraph/ --exclude node_modules --exclude example --exclude .git --exclude .expo && rimraf node_modules/react-native-telegraph/node_modules && npx jetify",
+    "clean-start": "watchman watch-del-all && rm -rf node_modules && yarn && rm -rf /tmp/metro-* && expo start -c",
+    "postinstall": "yarn build && yarn copy-lib"
   },
   "dependencies": {
     "@babel/core": "~7.9.0",
-    "nanoid": "^3.1.18",
     "react-native-animatable": "^1.3.3",
-    "react-native-get-random-values": "^1.5.0",
-    "react-native-paper": "4.7.1",
-    "react-native-reanimated": "^1.13.2"
+    "react-native-paper": "4.9",
+    "react-native-telegraph": "*"
   },
   "devDependencies": {
     "@types/react": "^17.0.0",

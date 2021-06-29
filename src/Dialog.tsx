@@ -4,13 +4,12 @@ import React, {
 import {
   Button, Dialog, Paragraph, Portal,
 } from 'react-native-paper';
-import 'react-native-get-random-values';
-import { nanoid } from 'nanoid';
 
 import {
   Action, RawAction,
 } from './types';
 import {
+  getRandomID,
   mapActionToRawAction, useDeepMemo,
 } from './utils';
 
@@ -111,7 +110,7 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({
           setDialogs((msgs) => msgs.filter((m) => m.id !== dialogId));
         }, []),
         showDialog = useCallback((title: string, opts?: DialogOptions) => {
-          const dialogId = opts?.id || nanoid(),
+          const dialogId = opts?.id || getRandomID(),
                 hideSelf = () => hideDialog(dialogId),
                 actions = opts?.actions?.map(mapActionToRawAction(hideSelf, () => null))
                   || [{ onPress: () => hideDialog(dialogId), label: 'Hide' }];

@@ -1,21 +1,25 @@
 import React, {
-  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
+  createContext, useCallback, useContext, useEffect, useMemo, useState,
 } from 'react';
 import {
   Button, Portal, Surface, Text,
 } from 'react-native-paper';
 import {
   Insets,
-  SafeAreaView, StyleSheet, TextStyle, ViewStyle,
+  LayoutAnimation,
+  View,
+  SafeAreaView,
+  StyleSheet,
+  TextStyle,
+  ViewStyle,
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
-import { Transition, Transitioning, TransitioningView } from 'react-native-reanimated';
 
 import {
   Action, RawAction,
 } from './types';
 import {
-  mapActionToRawAction, getNanoID, useDeepMemo,
+  mapActionToRawAction, getRandomID, useDeepMemo,
 } from './utils';
 
 
@@ -146,18 +150,14 @@ export type SnackbarProviderProps = {
   animationDuration?: number
 }
 
-const transition = (
-  <Transition.Together>
-    <Transition.Change interpolation='easeInOut' />
-  </Transition.Together>
-);
-
 export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   children,
   textStyle,
   style,
   maxSimultaneusItems = 1,
-  insets: initialInsets = {},
+  insets: initialInsets = {
+    bottom: 0, left: 0, right: 0, top: 0,
+  },
   SnackbarComponent = DefaultSnackbarComponent,
   defaultTimeout = 5000,
   animationDuration = 300,
@@ -165,7 +165,6 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   hideAnimation = 'fadeOutDown',
 }) => {
   const [snackbars, setSnackbars] = useState<Snackbar[]>([]),
-        rootRef = useRef<TransitioningView>(),
         [insets, setInsets] = useState(() => ({
           bottom: 0,
           left: 0,
@@ -175,14 +174,11 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         })),
         [snackbarAreaHeightTop, setSnackbarAreaHeightTop] = useState(insets.top || 0),
         [snackbarAreaHeightBottom, setSnackbarAreaHeightBottom] = useState(insets.bottom || 0),
-        easeInOut = () => {
-          rootRef.current?.animateNextTransition();
-        },
         topSnackbars = useMemo(() => snackbars.filter((m) => m.position === 'top').slice(0, maxSimultaneusItems), [snackbars, maxSimultaneusItems]),
         setSnackbarInsets = useCallback((ins) => setInsets(ins), []),
         bottomSnackbars = useMemo(() => snackbars.filter((m) => m.position === 'bottom').slice(0, maxSimultaneusItems), [snackbars, maxSimultaneusItems]),
         hideSnackbar = useCallback((messageId: string) => {
-          easeInOut();
+          LayoutAnimation.easeInEaseOut();
           setSnackbars((msgs) => msgs.map((m) => {
             const isSnackbar = m.id === messageId;
 
@@ -192,14 +188,14 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           }));
         }, []),
         cleanUpAfterAnimations = useCallback((messageId: string) => {
-          easeInOut();
+          LayoutAnimation.easeInEaseOut();
           setSnackbars((msgs) => msgs.filter((m) => m.id !== messageId));
         }, []),
         showSnackbar = useCallback(<T extends any = unknown>(
           title: string,
           opts?: SnackbarOptions<T>,
         ): Promise<T | void> => {
-          const messageId = opts?.id ?? getNanoID(),
+          const messageId = opts?.id ?? getRandomID(),
                 timeout = opts?.timeout || (opts?.persistent ? undefined : defaultTimeout),
                 position = opts?.position || 'bottom';
 
@@ -214,7 +210,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
                       : []
                     );
 
-            easeInOut();
+            LayoutAnimation.easeInEaseOut();
             setSnackbars((msgs) => {
               const status = msgs.filter(
                 (m) => m.position === position,
@@ -248,15 +244,21 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         }, [maxSimultaneusItems, hideSnackbar, defaultTimeout]);
 
   useEffect(() => {
-    setInsets((prev) => ({ ...prev, ...initialInsets }));
-  }, [initialInsets]);
+    setInsets((prev) => ({
+      ...prev,
+      bottom: initialInsets.bottom || 0,
+      top: initialInsets.top || 0,
+      left: initialInsets.left || 0,
+      right: initialInsets.right || 0,
+    }));
+  }, [initialInsets.bottom, initialInsets.top, initialInsets.left, initialInsets.right]);
 
   useEffect(() => {
     const items = [...bottomSnackbars, ...topSnackbars].filter((i) => i.status === 'queued');
     const ids = items.map((i) => i.id);
 
     if (ids.length > 0) {
-      easeInOut();
+      LayoutAnimation.easeInEaseOut();
       setSnackbars((msgs) => msgs.map((m) => (ids.includes(m.id) ? { ...m, status: 'visible' } : m)));
 
       items.forEach((item) => {
@@ -280,14 +282,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
     >
       { children }
       <Portal>
-        <Transitioning.View
-          style={styles.flexOne}
-          transition={transition}
-          pointerEvents='box-none'
-          // eslint-disable-next-line
-          // @ts-ignore
-          ref={rootRef}
-        >
+        <View pointerEvents='box-none' style={styles.flexOne}>
           <SafeAreaView
             style={[styles.container, {
               top: insets.top || 0,
@@ -336,7 +331,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
               />
             )) }
           </SafeAreaView>
-        </Transitioning.View>
+        </View>
       </Portal>
     </SnackbarContext.Provider>
   );
