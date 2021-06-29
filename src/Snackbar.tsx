@@ -69,7 +69,9 @@ const SnackbarContext = createContext<SnackbarContextData>({
 
 
 const styles = StyleSheet.create({
-  container: { left: 0, right: 0, position: 'absolute' },
+  container: {
+    left: 0, right: 0, position: 'absolute', bottom: 0,
+  },
   surface: {
     borderRadius: 5, margin: 5, padding: 10, paddingLeft: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
   },
@@ -199,7 +201,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           }
 
           setSnackbars((msgs) => msgs.filter((m) => m.id !== messageId));
-        }, []),
+        }, [insets.bottom]),
         showSnackbar = useCallback(<T extends any = unknown>(
           title: string,
           opts?: SnackbarOptions<T>,
@@ -297,7 +299,6 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           <Animatable.View
             pointerEvents='box-none'
             style={[styles.container, {
-              bottom: 0,
               left: insets.left || 0,
               right: insets.right || 0,
             }]}
