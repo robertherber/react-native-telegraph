@@ -172,7 +172,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           ...initialInsets,
         })),
         [snackbarAreaHeightBottom, setSnackbarAreaHeightBottom] = useState(0),
-        translateY = useRef(new Animated.Value(0)),
+        translateY = useRef(new Animated.Value(-insets.bottom)),
         snackbarHeights = useRef<Record<string, number>>({}),
         setSnackbarInsets = useCallback((ins) => setInsets(ins), []),
         bottomSnackbars = useMemo(() => snackbars.slice(0, maxSimultaneusItems), [
@@ -191,9 +191,9 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         cleanUpAfterAnimations = useCallback((messageId: string) => {
           const height = snackbarHeights.current[messageId];
           if (height) {
-            translateY.current.setValue(height);
+            translateY.current.setValue(-(height + insets.bottom));
             Animated.timing(translateY.current, {
-              toValue: 0,
+              toValue: -insets.bottom,
               useNativeDriver: true,
             }).start();
           }
@@ -248,6 +248,13 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         }, [maxSimultaneusItems, hideSnackbar, defaultTimeout]);
 
   useEffect(() => {
+    Animated.timing(translateY.current, {
+      toValue: -insets.bottom,
+      useNativeDriver: true,
+    }).start();
+  }, [insets.bottom]);
+
+  useEffect(() => {
     setInsets((prev) => ({
       ...prev,
       bottom: initialInsets.bottom || 0,
@@ -290,16 +297,16 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           <Animatable.View
             pointerEvents='box-none'
             style={[styles.container, {
-              bottom: insets.bottom || 0,
+              bottom: 0,
               left: insets.left || 0,
               right: insets.right || 0,
             }]}
-            transition={['bottom', 'left', 'right']}
+            transition={['left', 'right']}
           >
             <Animated.View
               style={[styles.reverse, {
                 transform: [{
-                  translateY: Animated.multiply(-1, translateY.current),
+                  translateY: translateY.current,
                 }],
               }]}
               onLayout={({ nativeEvent }) => {
