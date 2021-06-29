@@ -4,10 +4,11 @@
     "jsx": "react-native",
     "lib": ["dom", "esnext"],
     "moduleResolution": "node",
-    "noEmit": true,
     "skipLibCheck": true,
+    "module": "AMD",
     "resolveJsonModule": true,
-    "strict": true
+    "strict": true,
+    "outFile": "./index.js"
   },
   "exclude": [
     "lib",

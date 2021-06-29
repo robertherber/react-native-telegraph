@@ -65,7 +65,7 @@
     "react-native": "*"
   },
   "scripts": {
-    "build": "tsc --outDir lib",
+    "build": "tsc",
     "lint": "concurrently \"eslint './**/*.{js,ts,tsx}'\" \"tsc --noEmit\"",
     "start": "expo start",
     "android": "expo start --android",
