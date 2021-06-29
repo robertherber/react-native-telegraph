@@ -5,7 +5,6 @@ import {
   Button, Portal, Surface, Text,
 } from 'react-native-paper';
 import {
-  Insets,
   SafeAreaView,
   StyleSheet,
   TextStyle,
@@ -57,14 +56,16 @@ export type SnackbarContextData<T extends any = unknown> = {
   showSnackbar: ShowSnackbarFn<T>,
   hideSnackbar: HideSnackbarFn,
   snackbarAreaHeight: number,
-  setSnackbarInsets: (insets: React.SetStateAction<Insets>) => void
+  pushInsetOffset: (insets: Partial<Insets>) => string,
+  removeInsetOffset: (id: string) => void
 }
 
 const SnackbarContext = createContext<SnackbarContextData>({
   showSnackbar: () => Promise.resolve(undefined),
   hideSnackbar: () => undefined,
   snackbarAreaHeight: 0,
-  setSnackbarInsets: () => {},
+  pushInsetOffset: () => '',
+  removeInsetOffset: () => {},
 });
 
 
@@ -90,6 +91,13 @@ export type SnackbarComponentProps = {
   textStyle?: TextStyle,
   onHeight: (height: number) => void,
 };
+
+export interface Insets {
+  top: number;
+  left: number;
+  bottom: number;
+  right: number;
+}
 
 export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
   item,
@@ -141,7 +149,7 @@ export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
 
 export type SnackbarProviderProps = {
   maxSimultaneusItems?: number,
-  insets? : Insets,
+  insets? : Partial<Insets>,
   textStyle?: TextStyle,
   style?: ViewStyle,
   SnackbarComponent?: React.FC<SnackbarComponentProps>,
@@ -156,7 +164,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   textStyle,
   style,
   maxSimultaneusItems = 1,
-  insets: initialInsets = {
+  insets: baseInsets = {
     bottom: 0, left: 0, right: 0, top: 0,
   },
   SnackbarComponent = DefaultSnackbarComponent,
@@ -171,12 +179,12 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           left: 0,
           right: 0,
           top: 0,
-          ...initialInsets,
+          ...baseInsets,
         })),
+        [insetOffsets, setInsetOffsets] = useState<{ inset: Partial<Insets>, id: string }[]>([]),
         [snackbarAreaHeightBottom, setSnackbarAreaHeightBottom] = useState(0),
         translateY = useRef(new Animated.Value(-insets.bottom)),
         snackbarHeights = useRef<Record<string, number>>({}),
-        setSnackbarInsets = useCallback((ins) => setInsets(ins), []),
         bottomSnackbars = useMemo(() => snackbars.slice(0, maxSimultaneusItems), [
           snackbars,
           maxSimultaneusItems,
@@ -249,22 +257,34 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           return promise;
         }, [maxSimultaneusItems, hideSnackbar, defaultTimeout]);
 
+
+  useEffect(() => {
+    const inset = insetOffsets.reduce<Insets>((prev, { inset: current }) => ({
+      bottom: current.bottom !== undefined ? (baseInsets.bottom || 0) + current.bottom : prev.bottom,
+      left: current.left !== undefined ? (baseInsets.left || 0) + current.left : prev.left,
+      right: current.right !== undefined ? (baseInsets.right || 0) + current.right : prev.right,
+      top: current.top !== undefined ? (baseInsets.top || 0) + current.top : prev.top,
+    }), {
+      bottom: baseInsets.bottom || 0,
+      left: baseInsets.left || 0,
+      right: baseInsets.right || 0,
+      top: baseInsets.top || 0,
+    });
+    setInsets(inset);
+  }, [
+    baseInsets.bottom,
+    baseInsets.top,
+    baseInsets.left,
+    baseInsets.right,
+    insetOffsets,
+  ]);
+
   useEffect(() => {
     Animated.timing(translateY.current, {
       toValue: -insets.bottom,
       useNativeDriver: true,
     }).start();
   }, [insets.bottom]);
-
-  useEffect(() => {
-    setInsets((prev) => ({
-      ...prev,
-      bottom: initialInsets.bottom || 0,
-      top: initialInsets.top || 0,
-      left: initialInsets.left || 0,
-      right: initialInsets.right || 0,
-    }));
-  }, [initialInsets.bottom, initialInsets.top, initialInsets.left, initialInsets.right]);
 
 
   useEffect(() => {
@@ -284,12 +304,23 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
     }
   }, [bottomSnackbars, hideSnackbar]);
 
+  const pushInsetOffset = useCallback((inset: Partial<Insets>) => {
+    const id = getRandomID();
+    setInsetOffsets((prev) => [...prev, { id, inset }]);
+    return id;
+  }, []);
+
+  const removeInsetOffset = useCallback((id) => {
+    setInsetOffsets((prev) => prev.filter((offset) => offset.id !== id));
+  }, []);
+
   return (
     <SnackbarContext.Provider value={{
       showSnackbar,
-      setSnackbarInsets,
       hideSnackbar,
-      snackbarAreaHeight: snackbarAreaHeightBottom + insets.bottom,
+      snackbarAreaHeight: snackbarAreaHeightBottom,
+      pushInsetOffset,
+      removeInsetOffset,
     }}
     >
       { children }
@@ -375,33 +406,30 @@ export const useSnackbarAreaHeight = (): number => {
   return snackbarAreaHeight;
 };
 
-export const useUpdateSnackbarInsets = (insets: Insets, isEnabled = true): void => {
-  const { setSnackbarInsets } = useContext(SnackbarContext);
+export const useSetSnackbarInsetOffset = (insets: Partial<Insets>, isEnabled = true): void => {
+  const { pushInsetOffset, removeInsetOffset } = useContext(SnackbarContext);
 
   useEffect(() => {
     if (isEnabled) {
-      let prevInsets: Insets = {};
-
-      setSnackbarInsets((previousInsets) => {
-        prevInsets = previousInsets;
-
-        const retVal = {
-          ...previousInsets,
-          ...insets,
-        };
-
-        return retVal;
-      });
+      const id = pushInsetOffset(insets);
 
       return () => {
-        setSnackbarInsets(prevInsets);
+        removeInsetOffset(id);
       };
     }
     return () => {};
 
     // we just want to update if the insets objects properties have changed
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEnabled, insets.bottom, insets.left, insets.right, insets.top, setSnackbarInsets]);
+  }, [
+    isEnabled,
+    insets.bottom,
+    insets.left,
+    insets.right,
+    insets.top,
+    removeInsetOffset,
+    pushInsetOffset,
+  ]);
 };
 
 export const useSnackbar = <T extends any = unknown>(
