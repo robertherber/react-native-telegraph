@@ -314,15 +314,22 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
     setInsetOffsets((prev) => prev.filter((offset) => offset.id !== id));
   }, []);
 
+  const contextData = useMemo(() => ({
+    showSnackbar,
+    hideSnackbar,
+    snackbarAreaHeight: snackbarAreaHeightBottom,
+    pushInsetOffset,
+    removeInsetOffset,
+  }), [
+    showSnackbar,
+    hideSnackbar,
+    snackbarAreaHeightBottom,
+    pushInsetOffset,
+    removeInsetOffset,
+  ]);
+
   return (
-    <SnackbarContext.Provider value={{
-      showSnackbar,
-      hideSnackbar,
-      snackbarAreaHeight: snackbarAreaHeightBottom,
-      pushInsetOffset,
-      removeInsetOffset,
-    }}
-    >
+    <SnackbarContext.Provider value={contextData}>
       { children }
       <Portal>
         <SafeAreaView pointerEvents='box-none' style={styles.flexOne}>
