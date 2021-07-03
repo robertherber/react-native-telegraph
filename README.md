@@ -42,34 +42,10 @@ const snackbarId = showSnackbar('lets hide this in another way');
 hideSnackbar(snackbarId)
 
 // control insets of the Snackbar in a specific view
-useUpdateSnackbarInsets({ bottom: 50 })
+useSetSnackbarInsetOffset({ bottom: 50 })
 ```
 
 ![Snackbar](https://callstack.github.io/react-native-paper/screenshots/snackbar.gif)
-
-## Banners (based on react-native-paper)
-
-You can choose whether you want multiple Banners to stack (default is showing one at a time, again [as recommended](https://material.io/components/banners#usage). They are persistent by default. They are designed out a bit different so you'll have to choose where to place your `<BannerArea />`
-
-```TypeScript
-import { useBanner } from 'react-native-telegraph';
-
-const [showBanner] = useBanner();
-
-showBanner('Simple banner');
-showBanner('Some new information is available', {
-  actions: [{
-    onPress: () => { /* reload */ },
-    label: 'Reload'
-  }]
-})
-
-// somewhere in your View Hierarchy (under the same Provider)
-<BannerArea />
-
-```
-
-![Banner](https://callstack.github.io/react-native-paper/screenshots/banner.gif)
 
 ## Dialogs (based on react-native-paper)
 

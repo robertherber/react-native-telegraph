@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { useSnackbar, TelegraphProvider, useDialog } from 'react-native-telegraph';
 import { Button, FAB, Switch, Text } from 'react-native-paper';
 import ErrorBoundaryWrapper from 'react-native-telegraph/ErrorBoundary';
-import { useSnackbarAreaHeight, useUpdateSnackbarInsets } from 'react-native-telegraph/Snackbar';
+import { useSnackbarAreaHeight, useSetSnackbarInsetOffset } from 'react-native-telegraph/Snackbar';
 import * as Animatable from 'react-native-animatable';
 
 const ViewWithError: React.FC<{ showError: boolean}> = ({ showError }) => {
@@ -26,7 +26,7 @@ const TelegraphDemo = () => {
         [bottom, setBottom] = useState(0),
         [count, setCount] = useState(1);
 
-  useUpdateSnackbarInsets({ bottom }, true);
+  useSetSnackbarInsetOffset({ bottom }, true);
   
   useEffect(() => {
     const showDialogAfterSnackbar = async () => {

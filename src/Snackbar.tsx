@@ -2,7 +2,7 @@ import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import {
-  Button, Portal, Surface, Text,
+  Button, Portal, Surface, Text, useTheme,
 } from 'react-native-paper';
 import {
   SafeAreaView,
@@ -74,10 +74,17 @@ const styles = StyleSheet.create({
     left: 0, right: 0, position: 'absolute', bottom: 0,
   },
   surface: {
-    borderRadius: 5, margin: 5, padding: 10, paddingLeft: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
+    borderRadius: 5, margin: 5, padding: 10, paddingLeft: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', elevation: 2, shadowOffset: { height: 2, width: 2 }, shadowRadius: 6,
   },
   flexOne: { flex: 1 },
   reverse: { flexDirection: 'column-reverse' },
+  timer: {
+    height: StyleSheet.hairlineWidth,
+    position: 'absolute',
+    bottom: 5,
+    left: 9,
+    right: 9,
+  },
 });
 
 export type SnackbarComponentProps = {
@@ -99,7 +106,8 @@ export interface Insets {
   right: number;
 }
 
-export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
+
+export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
   item,
   index,
   cleanUpAfterAnimations,
@@ -108,9 +116,11 @@ export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
   animationDuration,
   style,
   textStyle,
+  children,
   onHeight,
 }) => {
-  const delay = index * 100,
+  const theme = useTheme(),
+        delay = index * 100,
         onAnimationEnd = () => {
           if (item.status === 'hidden') {
             cleanUpAfterAnimations(item.id);
@@ -120,6 +130,18 @@ export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
           ? item.hideAnimation || hideAnimation
           : item.showAnimation || showAnimation;
 
+  const timer = useRef(new Animated.Value(1));
+
+  useEffect(() => {
+    if (item.timeout) {
+      Animated.timing(timer.current, {
+        toValue: 0,
+        useNativeDriver: true,
+        duration: item.timeout,
+      }).start();
+    }
+  }, [timer, item.timeout]);
+
   return (
     <Animatable.View
       duration={item.animationDuration || animationDuration}
@@ -127,23 +149,39 @@ export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = ({
       useNativeDriver
       onAnimationEnd={onAnimationEnd}
       animation={animation}
+      onLayout={({ nativeEvent }) => onHeight(nativeEvent.layout.height)}
     >
       <Surface
         key={item.id}
         style={[styles.surface, style]}
-        onLayout={({ nativeEvent }) => onHeight(nativeEvent.layout.height + 10)}
       >
-        <Text style={[styles.flexOne, textStyle]}>{ item.title }</Text>
-        { item.actions.map((a) => (
-          <Button
-            key={`${a.label}`}
-            onPress={() => a.onPress(item.id)}
-          >
-            { a.label }
-          </Button>
-        )) }
+        { children }
       </Surface>
+      { item.timeout ? (
+        <Animated.View style={[styles.timer, {
+          backgroundColor: textStyle?.color || theme.colors.text,
+          transform: [{ scaleX: timer.current }],
+        }]}
+        />
+      ) : null }
     </Animatable.View>
+  );
+};
+
+export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = (props) => {
+  const { textStyle, item } = props;
+  return (
+    <DefaultSnackbarWrapper {...props}>
+      <Text style={[styles.flexOne, textStyle]}>{ item.title }</Text>
+      { item.actions.map((a) => (
+        <Button
+          key={`${a.label}`}
+          onPress={() => a.onPress(item.id)}
+        >
+          { a.label }
+        </Button>
+      )) }
+    </DefaultSnackbarWrapper>
   );
 };
 
