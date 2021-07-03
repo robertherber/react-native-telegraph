@@ -128,7 +128,8 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
         },
         animation = item.status === 'hidden'
           ? item.hideAnimation || hideAnimation
-          : item.showAnimation || showAnimation;
+          : item.showAnimation || showAnimation,
+        margin = (style?.margin ?? styles.surface.margin) as number;
 
   const timer = useRef(new Animated.Value(1));
 
@@ -149,11 +150,11 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
       useNativeDriver
       onAnimationEnd={onAnimationEnd}
       animation={animation}
-      onLayout={({ nativeEvent }) => onHeight(nativeEvent.layout.height)}
     >
       <Surface
         key={item.id}
         style={[styles.surface, style]}
+        onLayout={({ nativeEvent }) => onHeight(nativeEvent.layout.height + (margin * 2))}
       >
         { children }
       </Surface>
