@@ -6,6 +6,7 @@ import {
 } from 'react-native-paper';
 import {
   SafeAreaView,
+  View,
   StyleSheet,
   TextStyle,
   ViewStyle,
@@ -74,7 +75,17 @@ const styles = StyleSheet.create({
     left: 0, right: 0, position: 'absolute', bottom: 0,
   },
   surface: {
-    borderRadius: 5, margin: 5, padding: 10, paddingLeft: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', elevation: 2, shadowOffset: { height: 2, width: 2 }, shadowRadius: 6,
+    borderRadius: 5,
+    margin: 5,
+    marginTop: 0,
+    padding: 8,
+    paddingLeft: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    elevation: 2,
+    shadowOffset: { height: 2, width: 2 },
+    shadowRadius: 6,
   },
   flexOne: { flex: 1 },
   reverse: { flexDirection: 'column-reverse' },
@@ -128,8 +139,7 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
         },
         animation = item.status === 'hidden'
           ? item.hideAnimation || hideAnimation
-          : item.showAnimation || showAnimation,
-        margin = (style?.margin ?? styles.surface.margin) as number;
+          : item.showAnimation || showAnimation;
 
   const timer = useRef(new Animated.Value(1));
 
@@ -151,20 +161,18 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
       onAnimationEnd={onAnimationEnd}
       animation={animation}
     >
-      <Surface
-        key={item.id}
-        style={[styles.surface, style]}
-        onLayout={({ nativeEvent }) => onHeight(nativeEvent.layout.height + (margin * 2))}
-      >
-        { children }
-      </Surface>
-      { item.timeout ? (
-        <Animated.View style={[styles.timer, {
-          backgroundColor: textStyle?.color || theme.colors.text,
-          transform: [{ scaleX: timer.current }],
-        }]}
-        />
-      ) : null }
+      <View onLayout={({ nativeEvent }) => onHeight(nativeEvent.layout.height)}>
+        <Surface style={[styles.surface, style]}>
+          { children }
+        </Surface>
+        { item.timeout ? (
+          <Animated.View style={[styles.timer, {
+            backgroundColor: textStyle?.color || theme.colors.text,
+            transform: [{ scaleX: timer.current }],
+          }]}
+          />
+        ) : null }
+      </View>
     </Animatable.View>
   );
 };
@@ -239,7 +247,8 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         }, []),
         cleanUpAfterAnimations = useCallback((messageId: string) => {
           const height = snackbarHeights.current[messageId];
-          if (height) {
+          const index = snackbars.findIndex((m) => m.id === messageId); // only animate if it's the last one
+          if (height && index === 0) {
             translateY.current.setValue(-(height + insets.bottom));
             Animated.timing(translateY.current, {
               toValue: -insets.bottom,
@@ -248,7 +257,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           }
 
           setSnackbars((msgs) => msgs.filter((m) => m.id !== messageId));
-        }, [insets.bottom]),
+        }, [insets.bottom, snackbars]),
         showSnackbar = useCallback(<T extends any = unknown>(
           title: string,
           opts?: SnackbarOptions<T>,
