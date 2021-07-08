@@ -29,6 +29,8 @@ type Snackbar<T = unknown> = {
   actions: Array<RawAction>,
   status: 'hidden' | 'visible' | 'queued',
   data?: T,
+  onShow?: () => void,
+  onHide?: () => void,
   animationDuration?: number,
   showAnimation?: Animatable.Animation,
   hideAnimation?: Animatable.Animation,
@@ -41,6 +43,8 @@ type SnackbarOptions<T = unknown> = {
   persistent?: boolean,
   actions?: Array<Action<T>>,
   data?: T
+  onShow?: () => void,
+  onHide?: () => void,
   animationDuration?: number,
   showAnimation?: Animatable.Animation,
   hideAnimation?: Animatable.Animation,
@@ -232,13 +236,17 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         [snackbarAreaHeightBottom, setSnackbarAreaHeightBottom] = useState(0),
         translateY = useRef(new Animated.Value(-insets.bottom)),
         snackbarHeights = useRef<Record<string, number>>({}),
-        bottomSnackbars = useMemo(() => snackbars.slice(0, maxSimultaneusItems), [
+        visibleSnackbars = useMemo(() => snackbars.slice(0, maxSimultaneusItems), [
           snackbars,
           maxSimultaneusItems,
         ]),
         hideSnackbar = useCallback((messageId: string) => {
           setSnackbars((msgs) => msgs.map((m) => {
             const isSnackbarToHide = m.id === messageId;
+
+            if (isSnackbarToHide && m.onHide) {
+              m.onHide();
+            }
 
             return isSnackbarToHide
               ? { ...m, status: 'hidden' }
@@ -336,13 +344,14 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
 
 
   useEffect(() => {
-    const items = bottomSnackbars.filter((i) => i.status === 'queued');
-    const ids = items.map((i) => i.id);
+    const wasQueued = visibleSnackbars.filter((i) => i.status === 'queued');
+    const ids = wasQueued.map((i) => i.id);
 
     if (ids.length > 0) {
       setSnackbars((msgs) => msgs.map((m) => (ids.includes(m.id) ? { ...m, status: 'visible' } : m)));
 
-      items.forEach((item) => {
+      wasQueued.forEach((item) => {
+        item.onShow?.();
         if (item.timeout) {
           setTimeout(() => {
             hideSnackbar(item.id);
@@ -350,7 +359,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         }
       });
     }
-  }, [bottomSnackbars, hideSnackbar]);
+  }, [visibleSnackbars, hideSnackbar]);
 
   const pushInsetOffset = useCallback((inset: Partial<Insets>) => {
     const id = getRandomID();
@@ -400,7 +409,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
                 setSnackbarAreaHeightBottom(nativeEvent.layout.height);
               }}
             >
-              { bottomSnackbars.map((i, index) => (
+              { visibleSnackbars.map((i, index) => (
                 <SnackbarComponent
                   key={i.id}
                   item={i}
