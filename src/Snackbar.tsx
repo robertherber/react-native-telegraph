@@ -149,13 +149,14 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
 
   useEffect(() => {
     if (item.timeout) {
+      timer.current.setValue(1);
       Animated.timing(timer.current, {
         toValue: 0,
         useNativeDriver: true,
         duration: item.timeout,
       }).start();
     }
-  }, [timer, item.timeout]);
+  }, [timer, item]);
 
   return (
     <Animatable.View
@@ -225,6 +226,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   hideAnimation = 'fadeOutDown',
 }) => {
   const [snackbars, setSnackbars] = useState<Snackbar[]>([]),
+        timeouts = useRef<Record<string, number>>({}),
         [insets, setInsets] = useState(() => ({
           bottom: 0,
           left: 0,
@@ -290,9 +292,10 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
                 : 'visible';
 
               if (status === 'visible' && timeout) {
-                setTimeout(() => {
+                clearTimeout(timeouts.current[messageId]);
+                timeouts.current[messageId] = setTimeout(() => {
                   hideSnackbar(messageId);
-                }, timeout);
+                }, timeout) as unknown as number;
               }
 
               const newMessages = [...msgs.filter((m) => m.id !== messageId), {
@@ -353,9 +356,10 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
       wasQueued.forEach((item) => {
         item.onShow?.();
         if (item.timeout) {
-          setTimeout(() => {
+          clearTimeout(timeouts.current[item.id]);
+          timeouts.current[item.id] = setTimeout(() => {
             hideSnackbar(item.id);
-          }, item.timeout);
+          }, item.timeout) as unknown as number;
         }
       });
     }
