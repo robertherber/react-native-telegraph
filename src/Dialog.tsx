@@ -2,7 +2,7 @@ import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import {
-  BackHandler, KeyboardAvoidingView, Platform, StyleSheet, useWindowDimensions, View,
+  BackHandler, KeyboardAvoidingView, Platform, StyleSheet,
 } from 'react-native';
 import {
   Button, Dialog, Paragraph, TextInput, Portal,
