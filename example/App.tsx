@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useSnackbar, TelegraphProvider, useDialog, useShowPrompt } from 'react-native-telegraph';
 import { Button, FAB, Switch, Text } from 'react-native-paper';
@@ -64,6 +64,17 @@ const TelegraphDemo = () => {
     void showDialogAfterSnackbar();
   }, []);
 
+  const handlePrompt = useCallback(async () => {
+    await showPrompt('A dialog', {
+     message: 'Enter an email',
+     dismissable: true,
+     inputProps: { autoFocus: true, placeholder: 'email placeholder', keyboardType: 'email-address' },
+   })
+   .then((result) => alert(result))
+   .catch(() => alert('dismissed!'))
+   
+ }, [])
+
   return <View style={{ flex: 1 }}>
     <Button onPress={() => {
       showDialog('hello world')
@@ -76,16 +87,7 @@ const TelegraphDemo = () => {
       <Button onPress={() => setBottom(Math.random() * 100)}>Randomize bottom inset</Button>
     </View>
     <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-      <Button onPress={async () => {
-         await showPrompt('A dialog', {
-          message: 'Enter an email',
-          dismissable: true,
-          inputProps: { autoFocus: true, placeholder: 'email placeholder', keyboardType: 'email-address' },
-        })
-        .then((result) => alert(result))
-        .catch(() => alert('dismissed!'))
-        
-      }}>Show Prompt</Button>
+      <Button onPress={handlePrompt}>Show Prompt</Button>
     </View>
     <Animatable.View style={{ position: 'absolute', right: 10, bottom: snackbarAreaHeight + 10 }} transition='bottom'>
       <ViewWithError showError={hey === 5} />

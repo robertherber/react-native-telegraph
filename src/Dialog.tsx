@@ -2,10 +2,10 @@ import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import {
-  BackHandler, KeyboardAvoidingView, Platform, StyleSheet,
+  BackHandler, KeyboardAvoidingView, Platform, StyleSheet, useWindowDimensions, View,
 } from 'react-native';
 import {
-  Button, Dialog, Paragraph, TextInput, useTheme, Portal,
+  Button, Dialog, Paragraph, TextInput, Portal,
 } from 'react-native-paper';
 import { TextInputProps } from 'react-native-paper/lib/typescript/components/TextInput/TextInput';
 
@@ -24,6 +24,7 @@ export type DialogData<T = unknown> = {
   dismissable?: boolean,
   onDismiss?: () => void,
   description?: string,
+  maxWidth?: number,
   actions: Array<RawAction>,
   inputProps?: Partial<TextInputProps>,
   status: 'hidden' | 'visible' | 'queued',
@@ -33,6 +34,7 @@ export type DialogData<T = unknown> = {
 export type DialogOptions<T = unknown> = {
   id?: string,
   message?: string,
+  maxWidth?: number,
   description?: string,
   actions?: Array<Action>,
   onDismiss?: () => void,
@@ -43,6 +45,7 @@ export type DialogOptions<T = unknown> = {
 
 const styles = StyleSheet.create({
   textInput: { marginHorizontal: 10 },
+  flexOne: { flex: 1 },
 });
 
 export type ShowDialogFn = (title: string, options?: DialogOptions) => string
@@ -52,11 +55,13 @@ export type HideDialogFn = (dialogId: string) => void;
 export type DialogContextData = {
   showDialog: ShowDialogFn,
   hideDialog: HideDialogFn,
+  dialogCount: number;
 }
 
 export const DialogContext = createContext<DialogContextData>({
   showDialog: () => '',
   hideDialog: () => undefined,
+  dialogCount: 0,
 });
 
 export type DialogContextProps = {
@@ -67,6 +72,7 @@ export type DialogContextProps = {
   onDismiss?: () => void,
 };
 
+
 export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
   item,
   cleanUpAfterAnimations,
@@ -74,7 +80,6 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
   onDismiss,
 }) => {
   const textContentRef = useRef('');
-  const modalId = 'my-id';
 
   useEffect(() => {
     if (item.status === 'hidden') {
@@ -101,11 +106,13 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
   }, [onDismissInternal, item.dismissable]);
 
   return (
-    <Dialog
-      visible={item.status === 'visible'}
-      onDismiss={item.dismissable ? onDismissInternal : undefined}
-    >
-      <KeyboardAvoidingView behavior='padding'>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'height' : 'padding'} style={styles.flexOne}>
+
+      <Dialog
+        visible={item.status === 'visible'}
+        onDismiss={item.dismissable ? onDismissInternal : undefined}
+      >
+
         <Dialog.Title>{ item.title }</Dialog.Title>
         { item.description
           ? (
@@ -117,7 +124,6 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
 
         { item.inputProps ? (
           <TextInput
-            inputAccessoryViewID={modalId}
             {...item.inputProps}
             onChangeText={onChangeText}
             onSubmitEditing={() => {
@@ -128,7 +134,7 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
           />
         ) : null}
 
-        <Dialog.Actions nativeID={modalId}>
+        <Dialog.Actions>
           { item.actions.map((a) => (
             <Button
               key={a.label}
@@ -140,8 +146,9 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
             </Button>
           )) }
         </Dialog.Actions>
-      </KeyboardAvoidingView>
-    </Dialog>
+
+      </Dialog>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -194,13 +201,15 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({
   }, [shownDialogs, hideDialog]);
 
   return (
-    <Portal>
-      <DialogContext.Provider value={{
-        showDialog,
-        hideDialog,
-      }}
-      >
-        { children }
+
+    <DialogContext.Provider value={{
+      showDialog,
+      hideDialog,
+      dialogCount: dialogs.length,
+    }}
+    >
+      { children }
+      <Portal>
         { shownDialogs.map((d, i) => (
           <DialogComponent
             index={i}
@@ -211,8 +220,9 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({
             key={d.id}
           />
         )) }
-      </DialogContext.Provider>
-    </Portal>
+      </Portal>
+    </DialogContext.Provider>
+
   );
 };
 
@@ -231,10 +241,15 @@ export const useShowDialog = (defaultOpts?: DialogOptions): ShowDialogFn => {
   return overrideShowDialog;
 };
 
+export const useHasActiveDialog = (): boolean => {
+  const { dialogCount } = useContext(DialogContext);
+
+  return dialogCount > 0;
+};
+
 export const useShowPrompt = (defaultOpts?: DialogOptions): ShowPromptFn => {
   const { showDialog } = useContext(DialogContext),
         memoizedDefaultOpts = useDeepMemo(defaultOpts),
-        theme = useTheme(),
         overrideShowDialog = useCallback((
           title: string,
           opts?: DialogOptions,
@@ -243,8 +258,9 @@ export const useShowPrompt = (defaultOpts?: DialogOptions): ShowPromptFn => {
           showDialog(
             title,
             {
+              dismissable: true,
               ...combinedProps,
-              inputProps: combinedProps.inputProps || { theme },
+              inputProps: { autoFocus: true, ...combinedProps.inputProps },
               onDismiss: () => {
                 reject();
                 combinedProps.onDismiss?.();
@@ -262,7 +278,7 @@ export const useShowPrompt = (defaultOpts?: DialogOptions): ShowPromptFn => {
               })),
             },
           );
-        }), [memoizedDefaultOpts, showDialog, theme]);
+        }), [memoizedDefaultOpts, showDialog]);
 
   return overrideShowDialog;
 };
