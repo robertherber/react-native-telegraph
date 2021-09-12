@@ -2,10 +2,10 @@ import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import {
-  BackHandler, KeyboardAvoidingView, Platform,
+  BackHandler, KeyboardAvoidingView, Platform, StyleSheet,
 } from 'react-native';
 import {
-  Button, Dialog, Paragraph, TextInput, useTheme,
+  Button, Dialog, Paragraph, TextInput, useTheme, Portal,
 } from 'react-native-paper';
 import { TextInputProps } from 'react-native-paper/lib/typescript/components/TextInput/TextInput';
 
@@ -25,7 +25,7 @@ export type DialogData<T = unknown> = {
   onDismiss?: () => void,
   description?: string,
   actions: Array<RawAction>,
-  inputProps?: TextInputProps,
+  inputProps?: Partial<TextInputProps>,
   status: 'hidden' | 'visible' | 'queued',
   data?: T
 }
@@ -36,10 +36,14 @@ export type DialogOptions<T = unknown> = {
   description?: string,
   actions?: Array<Action>,
   onDismiss?: () => void,
-  inputProps?: TextInputProps,
+  inputProps?: Partial<TextInputProps>,
   dismissable?: boolean,
   data?: T
 }
+
+const styles = StyleSheet.create({
+  textInput: { marginHorizontal: 10 },
+});
 
 export type ShowDialogFn = (title: string, options?: DialogOptions) => string
 export type ShowPromptFn = (title: string, options?: DialogOptions) => Promise<string>
@@ -94,12 +98,9 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
       return () => subscription.remove();
     }
     return () => {};
-  }, [onDismissInternal]);
-
-  console.log('item.status', item.status);
+  }, [onDismissInternal, item.dismissable]);
 
   return (
-
     <Dialog
       visible={item.status === 'visible'}
       onDismiss={item.dismissable ? onDismissInternal : undefined}
@@ -123,7 +124,7 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
               const action = item.actions.find((a) => !a.dismiss);
               action?.onPress(item.id, textContentRef.current);
             }}
-            style={{ marginHorizontal: 10 }}
+            style={styles.textInput}
           />
         ) : null}
 
@@ -141,7 +142,6 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
         </Dialog.Actions>
       </KeyboardAvoidingView>
     </Dialog>
-
   );
 };
 
@@ -193,26 +193,26 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({
     }
   }, [shownDialogs, hideDialog]);
 
-  console.log('dialogs', dialogs);
-
   return (
-    <DialogContext.Provider value={{
-      showDialog,
-      hideDialog,
-    }}
-    >
-      { children }
-      { shownDialogs.map((d, i) => (
-        <DialogComponent
-          index={i}
-          cleanUpAfterAnimations={cleanUpAfterAnimations}
-          item={d}
-          onDismiss={d.onDismiss}
-          hideDialog={hideDialog}
-          key={d.id}
-        />
-      )) }
-    </DialogContext.Provider>
+    <Portal>
+      <DialogContext.Provider value={{
+        showDialog,
+        hideDialog,
+      }}
+      >
+        { children }
+        { shownDialogs.map((d, i) => (
+          <DialogComponent
+            index={i}
+            cleanUpAfterAnimations={cleanUpAfterAnimations}
+            item={d}
+            onDismiss={d.onDismiss}
+            hideDialog={hideDialog}
+            key={d.id}
+          />
+        )) }
+      </DialogContext.Provider>
+    </Portal>
   );
 };
 
@@ -246,7 +246,6 @@ export const useShowPrompt = (defaultOpts?: DialogOptions): ShowPromptFn => {
               ...combinedProps,
               inputProps: combinedProps.inputProps || { theme },
               onDismiss: () => {
-                console.log('useShowPrompt dismiss');
                 reject();
                 combinedProps.onDismiss?.();
               },

@@ -77,12 +77,14 @@ const TelegraphDemo = () => {
     </View>
     <View style={{ justifyContent: 'center', alignItems: 'center' }}>
       <Button onPress={async () => {
-        const result = await showPrompt('A dialog', {
+         await showPrompt('A dialog', {
           message: 'Enter an email',
           dismissable: true,
-          inputProps: { autoFocus: true, placeholder: 'placeholder', keyboardType: 'email-address' },
-        }).catch(() => alert('dismissed!'))
-        alert(result);
+          inputProps: { autoFocus: true, placeholder: 'email placeholder', keyboardType: 'email-address' },
+        })
+        .then((result) => alert(result))
+        .catch(() => alert('dismissed!'))
+        
       }}>Show Prompt</Button>
     </View>
     <Animatable.View style={{ position: 'absolute', right: 10, bottom: snackbarAreaHeight + 10 }} transition='bottom'>
