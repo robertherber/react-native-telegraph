@@ -1,10 +1,11 @@
 export type Action<T = unknown> = {
-  onPress?: ((messageId: string) => T | PromiseLike<T> | undefined),
+  onPress?: ((messageId: string, text?: string) => T | PromiseLike<T> | undefined),
   label: string,
   dismiss?: boolean
 }
 
 export type RawAction = {
-  onPress: (messageId: string) => void,
+  onPress: (messageId: string, text?: string) => void,
   label: string
+  dismiss: boolean
 }

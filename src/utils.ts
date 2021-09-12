@@ -8,11 +8,12 @@ export function mapActionToRawAction<T = unknown>(onPressHide: RawAction['onPres
     a: Action<T>,
   ): RawAction => ({
     label: a.label,
-    onPress: (messageId: string) => {
+    dismiss: !!a.dismiss,
+    onPress: (messageId: string, text?: string) => {
       const { onPress } = a;
 
       if (onPress) {
-        const val = onPress(messageId);
+        const val = onPress(messageId, text);
         resolve(val);
       }
       if (a.dismiss === undefined || a.dismiss === true) {
