@@ -11,7 +11,7 @@ export * from './Snackbar';
 export * from './Dialog';
 
 type Props = {
-  maxSimultaneusItems?: number,
+  maxSimultaneusItems?: number, // eslint-disable-line react/require-default-props
 }
 
 export const TelegraphProvider: React.FC<Props> = ({ children, maxSimultaneusItems }) => (
