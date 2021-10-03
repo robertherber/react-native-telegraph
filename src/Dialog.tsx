@@ -79,7 +79,7 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
   hideDialog,
   onDismiss,
 }) => {
-  const textContentRef = useRef('');
+  const textContentRef = useRef(item.inputProps?.defaultValue || '');
 
   useEffect(() => {
     if (item.status === 'hidden') {
@@ -264,7 +264,7 @@ export const useShowPrompt = (defaultOpts?: DialogOptions): ShowPromptFn => {
               ...combinedProps,
               inputProps: { autoFocus: true, ...combinedProps.inputProps },
               onDismiss: () => {
-                reject();
+                reject(new Error('Dismissed by clicking outside'));
                 combinedProps.onDismiss?.();
               },
               actions: (combinedProps.actions ? combinedProps.actions : [{ label: 'Submit' }]).map((a) => ({
@@ -272,7 +272,7 @@ export const useShowPrompt = (defaultOpts?: DialogOptions): ShowPromptFn => {
                 onPress: (id, text) => {
                   a.onPress?.(id, text);
                   if (a.dismiss) {
-                    reject();
+                    reject(new Error('Dismissed by clicking dismiss button'));
                   } else {
                     resolve(text!);
                   }
