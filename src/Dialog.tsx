@@ -2,7 +2,7 @@ import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import {
-  BackHandler, KeyboardAvoidingView, Platform, StyleSheet,
+  BackHandler, KeyboardAvoidingView, Platform, StyleSheet, View,
 } from 'react-native';
 import {
   Button, Dialog, Paragraph, TextInput, Portal,
@@ -106,48 +106,50 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
   }, [onDismissInternal, item.dismissable]);
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'height' : 'padding'} style={styles.flexOne}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flexOne}>
+      <View style={styles.flexOne} pointerEvents='box-none'>
+        <Dialog
+          visible={item.status === 'visible'}
+          onDismiss={item.dismissable ? onDismissInternal : undefined}
+        >
 
-      <Dialog
-        visible={item.status === 'visible'}
-        onDismiss={item.dismissable ? onDismissInternal : undefined}
-      >
+          <Dialog.Title>{ item.title }</Dialog.Title>
+          { item.description
+            ? (
+              <Dialog.Content>
+                <Paragraph>{ item.description }</Paragraph>
+              </Dialog.Content>
+            )
+            : null }
 
-        <Dialog.Title>{ item.title }</Dialog.Title>
-        { item.description
-          ? (
-            <Dialog.Content>
-              <Paragraph>{ item.description }</Paragraph>
-            </Dialog.Content>
-          )
-          : null }
-
-        { item.inputProps ? (
-          <TextInput
-            {...item.inputProps}
-            onChangeText={onChangeText}
-            onSubmitEditing={() => {
-              const action = item.actions.find((a) => !a.dismiss);
-              action?.onPress(item.id, textContentRef.current);
-            }}
-            style={styles.textInput}
-          />
-        ) : null}
-
-        <Dialog.Actions>
-          { item.actions.map((a) => (
-            <Button
-              key={a.label}
-              onPress={() => {
-                a.onPress(item.id, textContentRef.current);
+          { item.inputProps ? (
+            <TextInput
+              {...item.inputProps}
+              onChangeText={onChangeText}
+              onSubmitEditing={() => {
+                const action = item.actions.find((a) => !a.dismiss);
+                action?.onPress(item.id, textContentRef.current);
               }}
-            >
-              {a.label}
-            </Button>
-          )) }
-        </Dialog.Actions>
+              style={styles.textInput}
+            />
+          ) : null}
 
-      </Dialog>
+          <Dialog.Actions>
+            { item.actions.map((a) => (
+              <Button
+                key={a.label}
+                onPress={() => {
+                  a.onPress(item.id, textContentRef.current);
+                }}
+              >
+                {a.label}
+              </Button>
+            )) }
+          </Dialog.Actions>
+
+        </Dialog>
+
+      </View>
     </KeyboardAvoidingView>
   );
 };
