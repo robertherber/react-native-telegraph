@@ -69,6 +69,7 @@ const TelegraphDemo = () => {
      message: 'Enter an email',
      dismissable: true,
      inputProps: { autoFocus: true, placeholder: 'email placeholder', keyboardType: 'email-address' },
+     actions: [{ label: 'Cancel', dismiss: true }, { label: 'Ok' }]
    })
    .then((result) => alert(result))
    .catch(() => alert('dismissed!'))
