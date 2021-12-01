@@ -265,7 +265,7 @@ export const useShowDialogSimple = (defaultOpts?: DialogOptions): ShowDialogSimp
                 onPress: (id: string) => {
                   a.onPress?.(id);
                   if (a.dismiss) {
-                    resolve(false)
+                    resolve(false);
                   } else {
                     resolve(a.label || true);
                   }
