@@ -49,6 +49,7 @@ const styles = StyleSheet.create({
 });
 
 export type ShowDialogFn = (title: string, options?: DialogOptions) => string
+export type ShowDialogSimpleFn = (title: string, options?: DialogOptions) => Promise<boolean | string>
 export type ShowPromptFn = (title: string, options?: DialogOptions) => Promise<string>
 export type HideDialogFn = (dialogId: string) => void;
 
@@ -228,7 +229,6 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({
   );
 };
 
-
 export const useShowDialog = (defaultOpts?: DialogOptions): ShowDialogFn => {
   const { showDialog } = useContext(DialogContext),
         memoizedDefaultOpts = useDeepMemo(defaultOpts),
@@ -239,6 +239,41 @@ export const useShowDialog = (defaultOpts?: DialogOptions): ShowDialogFn => {
           title,
           { ...memoizedDefaultOpts, ...opts },
         ), [memoizedDefaultOpts, showDialog]);
+
+  return overrideShowDialog;
+};
+
+export const useShowDialogSimple = (defaultOpts?: DialogOptions): ShowDialogSimpleFn => {
+  const { showDialog } = useContext(DialogContext),
+        memoizedDefaultOpts = useDeepMemo(defaultOpts),
+        overrideShowDialog = useCallback((
+          title: string,
+          opts?: DialogOptions,
+        ) => new Promise<boolean | string>((resolve) => {
+          const combinedProps = { ...memoizedDefaultOpts, ...opts };
+          showDialog(
+            title,
+            {
+              dismissable: true,
+              ...combinedProps,
+              onDismiss: () => {
+                resolve(false);
+                combinedProps.onDismiss?.();
+              },
+              actions: (combinedProps.actions ? combinedProps.actions : [{ label: 'Submit' }]).map((a) => ({
+                ...a,
+                onPress: (id: string) => {
+                  a.onPress?.(id);
+                  if (a.dismiss) {
+                    resolve(false)
+                  } else {
+                    resolve(a.label || true);
+                  }
+                },
+              })),
+            },
+          );
+        }), [memoizedDefaultOpts, showDialog]);
 
   return overrideShowDialog;
 };

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { useSnackbar, TelegraphProvider, useDialog, useShowPrompt } from 'react-native-telegraph';
+import { useSnackbar, TelegraphProvider, useDialog, useShowPrompt, useShowDialog } from 'react-native-telegraph';
 import { Button, FAB, Switch, Text } from 'react-native-paper';
 import ErrorBoundaryWrapper from 'react-native-telegraph/ErrorBoundary';
 import { useSnackbarAreaHeight, useSetSnackbarInsetOffset } from 'react-native-telegraph/Snackbar';
@@ -20,7 +20,7 @@ const ViewWithError: React.FC<{ showError: boolean}> = ({ showError }) => {
 const TelegraphDemo = () => {
   const [hey, setHey] = useState(0),
         [showSnackbar, hideSnackbar] = useSnackbar<'a' | 'b'>(),
-        [showDialog] = useDialog(),
+        showDialog = useShowDialog(),
         showPrompt = useShowPrompt(),
         [persistent, setPersistent] = useState(false),
         snackbarAreaHeight = useSnackbarAreaHeight(),
