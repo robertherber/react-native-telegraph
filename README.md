@@ -1,4 +1,6 @@
-# react-native-telegraph
+# react-native-telegraph!
+
+[Example screen recording](https://user-images.githubusercontent.com/1467411/144711807-79ac658b-e4bb-4743-a2c0-0d11656dbec1.gif)
 
 [![Test](https://github.com/robertherber/react-native-telegraph/actions/workflows/test.yml/badge.svg)](https://github.com/robertherber/react-native-telegraph/actions/workflows/test.yml)
 [![react-native-telegraph on NPM](https://img.shields.io/npm/v/react-native-telegraph)](https://www.npmjs.com/package/react-native-telegraph)
