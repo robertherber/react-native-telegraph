@@ -111,6 +111,7 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
       <View style={styles.flexOne} pointerEvents='box-none'>
         <Dialog
           visible={item.status === 'visible'}
+          style={{ maxWidth: item.maxWidth, width: '100%', alignSelf: 'center' }}
           onDismiss={item.dismissable ? onDismissInternal : undefined}
         >
 
