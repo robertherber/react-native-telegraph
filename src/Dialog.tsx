@@ -46,6 +46,7 @@ export type DialogOptions<T = unknown> = {
 const styles = StyleSheet.create({
   textInput: { marginHorizontal: 10 },
   flexOne: { flex: 1 },
+  dialog: { width: '100%', alignSelf: 'center' },
 });
 
 export type ShowDialogFn = (title: string, options?: DialogOptions) => string
@@ -111,7 +112,7 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
       <View style={styles.flexOne} pointerEvents='box-none'>
         <Dialog
           visible={item.status === 'visible'}
-          style={{ maxWidth: item.maxWidth, width: '100%', alignSelf: 'center' }}
+          style={[{ maxWidth: item.maxWidth }, styles.dialog]}
           onDismiss={item.dismissable ? onDismissInternal : undefined}
         >
 
