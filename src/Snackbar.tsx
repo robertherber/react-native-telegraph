@@ -296,6 +296,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
                 clearTimeout(timeouts.current[messageId]);
                 timeouts.current[messageId] = setTimeout(() => {
                   hideSnackbar(messageId);
+                  resolve();
                 }, timeout) as unknown as number;
               }
 
