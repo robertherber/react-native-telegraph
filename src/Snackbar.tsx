@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 5,
     top: Platform.OS === 'web' ? 5 : 0, // not sure why this is different on web
-    opacity: 0.1,
+    opacity: 0.05,
     bottom: 5,
     left: 5,
     right: 5,
