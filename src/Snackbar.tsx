@@ -201,9 +201,8 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
           { children }
         </Surface>
         { item.timeout ? (
-          <View style={styles.timerWrapper}>
+          <View pointerEvents='none' style={styles.timerWrapper}>
             <Animated.View
-              pointerEvents='none'
               style={[styles.timer, {
                 backgroundColor: textStyle?.color || theme.colors.text,
                 right: width,
