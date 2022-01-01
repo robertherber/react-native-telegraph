@@ -31,22 +31,25 @@ const TelegraphDemo = () => {
   
   useEffect(() => {
     const showDialogAfterSnackbar = async () => {
-      const buttonPressed = await showSnackbar('static snackbar', { persistent: true, actions: [
-        { 
-          label: 'Show dialog', 
-          onPress: (messageId) => {
-            hideSnackbar(messageId);
-            return 'a'
-          } 
-        },
-        { 
-          label: 'Hide', 
-          onPress: (messageId) => {
-            hideSnackbar(messageId);
-            return 'b'
-          } 
-        }
-      ] })
+      const buttonPressed = await showSnackbar('static snackbar', { 
+        persistent: true, 
+        actions: [
+          { 
+            label: 'Show dialog', 
+            onPress: (messageId) => {
+              hideSnackbar(messageId);
+              return 'a'
+            } 
+          },
+          { 
+            label: 'Hide', 
+            onPress: (messageId) => {
+              hideSnackbar(messageId);
+              return 'b'
+            } 
+          }
+        ] 
+      })
 
       console.log('buttonPressed', buttonPressed);
 

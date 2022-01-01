@@ -37,11 +37,14 @@ type Snackbar<T extends Record<string, unknown> = Record<string, unknown>> = {
   _resolver: (value?: T) => void
 }
 
-type SnackbarOptions<T extends Record<string, unknown> = Record<string, unknown>> = {
+type SnackbarOptions<
+  T extends Record<string, unknown> = Record<string, unknown>,
+  TRet = unknown
+> = {
   id?: string,
   timeout?: number,
   persistent?: boolean,
-  actions?: Array<Action<T>>,
+  actions?: Array<Action<TRet>>,
   data?: T
   onShow?: () => void,
   onHide?: () => void,
@@ -50,15 +53,21 @@ type SnackbarOptions<T extends Record<string, unknown> = Record<string, unknown>
   hideAnimation?: Animatable.Animation,
 }
 
-export type ShowSnackbarFn<T extends Record<string, unknown> = Record<string, unknown>> = (
+export type ShowSnackbarFn<
+  T extends Record<string, unknown> = Record<string, unknown>,
+  TRet = unknown
+> = (
   title: string,
-  options?: SnackbarOptions<T>
-) => Promise<T | undefined>;
+  options?: SnackbarOptions<T, TRet>
+) => Promise<TRet | undefined>;
 
 export type HideSnackbarFn = (messageId: string) => void;
 
-export type SnackbarContextData<T extends Record<string, unknown> = Record<string, unknown>> = {
-  showSnackbar: ShowSnackbarFn<T>,
+export type SnackbarContextData<
+  T extends Record<string, unknown> = Record<string, unknown>,
+  TRet = unknown
+> = {
+  showSnackbar: ShowSnackbarFn<T, TRet>,
   hideSnackbar: HideSnackbarFn,
   snackbarAreaHeight: number,
   pushInsetOffset: (insets: Partial<Insets>) => string,
@@ -78,6 +87,7 @@ const styles = StyleSheet.create({
   container: {
     left: 0, right: 0, position: 'absolute', bottom: 0,
   },
+  wrapper: { overflow: 'hidden' },
   surface: {
     borderRadius: 5,
     margin: 5,
@@ -94,12 +104,20 @@ const styles = StyleSheet.create({
   },
   flexOne: { flex: 1 },
   reverse: { flexDirection: 'column-reverse' },
-  timer: {
-    height: StyleSheet.hairlineWidth,
+  timerWrapper: {
     position: 'absolute',
+    overflow: 'hidden',
+    borderRadius: 5,
+    top: 0,
+    opacity: 0.1,
     bottom: 5,
-    left: 9,
-    right: 9,
+    left: 5,
+    right: 5,
+  },
+  timer: {
+    flex: 1,
+    overflow: 'hidden',
+    // right: 9,
   },
 });
 
@@ -137,6 +155,8 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
 }) => {
   const theme = useTheme(),
         delay = index * 100,
+        // animatedWidth = useRef(new Animated.Value(0)),
+        [width, setWidth] = useState(0),
         onAnimationEnd = useCallback(() => {
           if (item.status === 'hidden') {
             cleanUpAfterAnimations(item.id);
@@ -170,22 +190,38 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
       onAnimationEnd={onAnimationEnd}
       animation={animation}
     >
-      <View onLayout={({ nativeEvent }) => onHeight(nativeEvent.layout.height)}>
+      <View
+        style={styles.wrapper}
+        onLayout={({ nativeEvent }) => {
+          onHeight(nativeEvent.layout.height);
+          setWidth(nativeEvent.layout.width);
+        }}
+      >
         <Surface style={[styles.surface, style]}>
           { children }
         </Surface>
         { item.timeout ? (
-          <Animated.View style={[styles.timer, {
-            backgroundColor: textStyle?.color || theme.colors.text,
-            transform: [{ scaleX: timer.current }],
-          }]}
-          />
+          <View style={styles.timerWrapper}>
+            <Animated.View
+              pointerEvents='none'
+              style={[styles.timer, {
+                backgroundColor: textStyle?.color || theme.colors.text,
+                right: width,
+                left: -width,
+                width: width * 2,
+                transform: [
+                  { scaleX: timer.current },
+                ],
+              }]}
+            />
+          </View>
         ) : null }
       </View>
     </Animatable.View>
   ), [
     animation, animationDuration, children, delay,
     item.animationDuration, item.timeout,
+    width,
     onAnimationEnd, onHeight, style, textStyle?.color, theme.colors.text,
   ]);
 };
@@ -280,19 +316,19 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           setSnackbars((msgs) => msgs.filter((m) => m.id !== messageId));
           return anim;
         }, [insets.bottom, snackbars]),
-        showSnackbar = useCallback(<T extends Record<string, unknown> = Record<string, unknown>>(
+        showSnackbar = useCallback(<T extends Record<string, unknown> = Record<string, unknown>, TRet = unknown>(
           title: string,
-          opts?: SnackbarOptions<T>,
-        ): Promise<T | void> => {
+          opts?: SnackbarOptions<T, TRet>,
+        ): Promise<TRet | void> => {
           const messageId = opts?.id ?? getRandomID(),
                 timeout = opts?.timeout || (opts?.persistent ? undefined : defaultTimeout);
 
-          const promise = new Promise<T | void>((resolve) => {
+          const promise = new Promise<TRet | void>((resolve) => {
             const hideSelf = () => {
                     hideSnackbar(messageId);
                     resolve();
                   },
-                  actions = opts?.actions?.map(mapActionToRawAction<T>(hideSelf, resolve))
+                  actions = opts?.actions?.map(mapActionToRawAction<TRet>(hideSelf, resolve))
                     || (opts?.persistent
                       ? [{ onPress: hideSelf, label: 'Hide' }]
                       : []
@@ -466,17 +502,20 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
     insets.right, showAnimation, style, textStyle, visibleSnackbars]);
 };
 
-export const useShowSnackbar = <T extends Record<string, unknown> = Record<string, unknown>>(
-  defaultOpts?: SnackbarOptions<T>,
-): ShowSnackbarFn<T> => {
-  const { showSnackbar } = useContext<SnackbarContextData<T>>(
-    SnackbarContext as React.Context<SnackbarContextData<T>>,
+export const useShowSnackbar = <
+  T extends Record<string, unknown> = Record<string, unknown>,
+  TRet = unknown
+>(
+    defaultOpts?: SnackbarOptions<T, TRet>,
+  ): ShowSnackbarFn<T, TRet> => {
+  const { showSnackbar } = useContext<SnackbarContextData<T, TRet>>(
+    SnackbarContext as React.Context<SnackbarContextData<T, TRet>>,
   );
 
   const memoizedDefaultOpts = useDeepMemo(defaultOpts);
   const overridableShowSnackbar = useCallback((
     title: string,
-    opts?: SnackbarOptions<T>,
+    opts?: SnackbarOptions<T, TRet>,
   ) => showSnackbar(
     title,
     { ...memoizedDefaultOpts, ...opts },
@@ -529,11 +568,11 @@ export const useSetSnackbarInsetOffset = (insets: Partial<Insets>, isEnabled = t
   ]);
 };
 
-export const useSnackbar = <T extends Record<string, unknown> = Record<string, unknown>>(
-  defaultOpts?: SnackbarOptions<T>,
+export const useSnackbar = <T extends Record<string, unknown> = Record<string, unknown>, TRet = unknown>(
+  defaultOpts?: SnackbarOptions<T, TRet>,
 ): [
-  ShowSnackbarFn<T>,
+  ShowSnackbarFn<T, TRet>,
   HideSnackbarFn
-] => [useShowSnackbar<T>(defaultOpts), useHideSnackbar()];
+] => [useShowSnackbar<T, TRet>(defaultOpts), useHideSnackbar()];
 
 export default SnackbarContext;
