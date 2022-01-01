@@ -22,7 +22,7 @@ import {
 } from './utils';
 
 
-type Snackbar<T = unknown> = {
+type Snackbar<T extends Record<string, unknown> = Record<string, unknown>> = {
   id: string,
   title: string,
   timeout?: number,
@@ -37,7 +37,7 @@ type Snackbar<T = unknown> = {
   _resolver: (value?: T) => void
 }
 
-type SnackbarOptions<T = unknown> = {
+type SnackbarOptions<T extends Record<string, unknown> = Record<string, unknown>> = {
   id?: string,
   timeout?: number,
   persistent?: boolean,
@@ -50,14 +50,14 @@ type SnackbarOptions<T = unknown> = {
   hideAnimation?: Animatable.Animation,
 }
 
-export type ShowSnackbarFn<T = unknown> = (
+export type ShowSnackbarFn<T extends Record<string, unknown> = Record<string, unknown>> = (
   title: string,
   options?: SnackbarOptions<T>
 ) => Promise<T | undefined>;
 
 export type HideSnackbarFn = (messageId: string) => void;
 
-export type SnackbarContextData<T extends any = unknown> = {
+export type SnackbarContextData<T extends Record<string, unknown> = Record<string, unknown>> = {
   showSnackbar: ShowSnackbarFn<T>,
   hideSnackbar: HideSnackbarFn,
   snackbarAreaHeight: number,
@@ -137,11 +137,11 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
 }) => {
   const theme = useTheme(),
         delay = index * 100,
-        onAnimationEnd = () => {
+        onAnimationEnd = useCallback(() => {
           if (item.status === 'hidden') {
             cleanUpAfterAnimations(item.id);
           }
-        },
+        }, [cleanUpAfterAnimations, item.id, item.status]),
         animation = item.status === 'hidden'
           ? item.hideAnimation || hideAnimation
           : item.showAnimation || showAnimation;
@@ -151,15 +151,18 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
   useEffect(() => {
     if (item.timeout) {
       timer.current.setValue(1);
-      Animated.timing(timer.current, {
+      const anim = Animated.timing(timer.current, {
         toValue: 0,
         useNativeDriver: true,
         duration: item.timeout,
-      }).start();
+      });
+      anim.start();
+      return () => anim.stop();
     }
+    return () => {};
   }, [timer, item]);
 
-  return (
+  return useMemo(() => (
     <Animatable.View
       duration={item.animationDuration || animationDuration}
       delay={delay}
@@ -180,7 +183,11 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
         ) : null }
       </View>
     </Animatable.View>
-  );
+  ), [
+    animation, animationDuration, children, delay,
+    item.animationDuration, item.timeout,
+    onAnimationEnd, onHeight, style, textStyle?.color, theme.colors.text,
+  ]);
 };
 
 export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = (props) => {
@@ -258,18 +265,22 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         }, []),
         cleanUpAfterAnimations = useCallback((messageId: string) => {
           const height = snackbarHeights.current[messageId];
-          const index = snackbars.findIndex((m) => m.id === messageId); // only animate if it's the last one
+          // only animate if it's the last one
+          const index = snackbars.findIndex((m) => m.id === messageId);
+          let anim: Animated.CompositeAnimation | undefined;
           if (height && index === 0) {
             translateY.current.setValue(-(height + insets.bottom));
-            Animated.timing(translateY.current, {
+            anim = Animated.timing(translateY.current, {
               toValue: -insets.bottom,
               useNativeDriver: true,
-            }).start();
+            });
+            anim.start();
           }
 
           setSnackbars((msgs) => msgs.filter((m) => m.id !== messageId));
+          return anim;
         }, [insets.bottom, snackbars]),
-        showSnackbar = useCallback(<T extends any = unknown>(
+        showSnackbar = useCallback(<T extends Record<string, unknown> = Record<string, unknown>>(
           title: string,
           opts?: SnackbarOptions<T>,
         ): Promise<T | void> => {
@@ -321,7 +332,9 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
 
   useEffect(() => {
     const inset = insetOffsets.reduce<Insets>((prev, { inset: current }) => ({
-      bottom: current.bottom !== undefined ? (baseInsets.bottom || 0) + current.bottom : prev.bottom,
+      bottom: current.bottom !== undefined
+        ? (baseInsets.bottom || 0) + current.bottom
+        : prev.bottom,
       left: current.left !== undefined ? (baseInsets.left || 0) + current.left : prev.left,
       right: current.right !== undefined ? (baseInsets.right || 0) + current.right : prev.right,
       top: current.top !== undefined ? (baseInsets.top || 0) + current.top : prev.top,
@@ -341,10 +354,12 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   ]);
 
   useEffect(() => {
-    Animated.timing(translateY.current, {
+    const anim = Animated.timing(translateY.current, {
       toValue: -insets.bottom,
       useNativeDriver: true,
-    }).start();
+    });
+    anim.start();
+    return () => anim.stop();
   }, [insets.bottom]);
 
 
@@ -391,24 +406,34 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
     removeInsetOffset,
   ]);
 
-  return (
-    <SnackbarContext.Provider value={contextData}>
+  const animatedLeft = useRef(new Animated.Value(insets.left));
+
+  useEffect(() => {
+    const anim = Animated.timing(animatedLeft.current, {
+      toValue: insets.left,
+      useNativeDriver: true,
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [insets.left]);
+
+  return useMemo(() => (
+    <SnackbarContext.Provider value={contextData as SnackbarContextData<Record<string, unknown>>}>
       { children }
       <Portal>
         <SafeAreaView pointerEvents='box-none' style={styles.flexOne}>
-
-          <Animatable.View
+          <View
             pointerEvents='box-none'
             style={[styles.container, {
-              left: insets.left || 0,
               right: insets.right || 0,
             }]}
-            transition={['left', 'right']}
           >
             <Animated.View
               style={[styles.reverse, {
                 transform: [{
                   translateY: translateY.current,
+                }, {
+                  translateX: animatedLeft.current,
                 }],
               }]}
               onLayout={({ nativeEvent }) => {
@@ -432,14 +457,16 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
                 />
               )) }
             </Animated.View>
-          </Animatable.View>
+          </View>
         </SafeAreaView>
       </Portal>
     </SnackbarContext.Provider>
-  );
+  ), [SnackbarComponent, animationDuration,
+    children, cleanUpAfterAnimations, contextData, hideAnimation,
+    insets.right, showAnimation, style, textStyle, visibleSnackbars]);
 };
 
-export const useShowSnackbar = <T extends any = unknown>(
+export const useShowSnackbar = <T extends Record<string, unknown> = Record<string, unknown>>(
   defaultOpts?: SnackbarOptions<T>,
 ): ShowSnackbarFn<T> => {
   const { showSnackbar } = useContext<SnackbarContextData<T>>(
@@ -502,7 +529,7 @@ export const useSetSnackbarInsetOffset = (insets: Partial<Insets>, isEnabled = t
   ]);
 };
 
-export const useSnackbar = <T extends any = unknown>(
+export const useSnackbar = <T extends Record<string, unknown> = Record<string, unknown>>(
   defaultOpts?: SnackbarOptions<T>,
 ): [
   ShowSnackbarFn<T>,
