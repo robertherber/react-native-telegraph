@@ -117,7 +117,6 @@ const styles = StyleSheet.create({
   timer: {
     flex: 1,
     overflow: 'hidden',
-    // right: 9,
   },
 });
 
@@ -461,7 +460,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           <View
             pointerEvents='box-none'
             style={[styles.container, {
-              right: insets.right || 0,
+              right: insets.right + insets.left,
             }]}
           >
             <Animated.View
