@@ -189,6 +189,7 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
       useNativeDriver
       onAnimationEnd={onAnimationEnd}
       animation={animation}
+      pointerEvents='box-none'
     >
       <View
         style={styles.wrapper}
@@ -196,6 +197,7 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
           onHeight(nativeEvent.layout.height);
           setWidth(nativeEvent.layout.width);
         }}
+        pointerEvents='box-none'
       >
         <Surface style={[styles.surface, style]}>
           { children }
@@ -464,6 +466,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
             }]}
           >
             <Animated.View
+              pointerEvents='box-none'
               style={[styles.reverse, {
                 transform: [{
                   translateY: translateY.current,
