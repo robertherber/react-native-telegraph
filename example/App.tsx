@@ -19,7 +19,9 @@ const ViewWithError: React.FC<{ showError: boolean}> = ({ showError }) => {
 
 const TelegraphDemo = () => {
   const [hey, setHey] = useState(0),
-        [showSnackbar, hideSnackbar] = useSnackbar<'a' | 'b'>(),
+        [showSnackbar, hideSnackbar] = useSnackbar<'a' | 'b'>({
+          textProps: { numberOfLines: 1 }
+        }),
         showDialog = useShowDialog(),
         showPrompt = useShowPrompt(),
         [persistent, setPersistent] = useState(false),
@@ -97,18 +99,22 @@ const TelegraphDemo = () => {
       <ViewWithError showError={hey === 5} />
       <FAB icon='plus'  onPress={() => {
         setCount(c => c + 1);
-        showSnackbar('snackbar ' + count, { persistent });
+        showSnackbar('snackbar with a hell of a lot of content snackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of content ' + count, { persistent, actions: [{label: 'hey'}, {label: 'yo'}] });
       }} />
     </Animatable.View>
   </View>
 }
 
+import { Provider as PaperProvider, DarkTheme  } from 'react-native-paper'
+
 export default function App() {
   return (
+    <PaperProvider theme={DarkTheme}>
     <TelegraphProvider maxSimultaneusItems={2}>
       <ErrorBoundaryWrapper>
         <TelegraphDemo />
       </ErrorBoundaryWrapper>
     </TelegraphProvider>
+    </PaperProvider>
   );
 }

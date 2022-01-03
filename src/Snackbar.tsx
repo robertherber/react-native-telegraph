@@ -11,7 +11,7 @@ import {
   TextStyle,
   ViewStyle,
   Animated,
-  Platform,
+  TextProps,
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 
@@ -33,14 +33,15 @@ type Snackbar<T extends Record<string, unknown> = Record<string, unknown>> = {
   onShow?: () => void,
   onHide?: () => void,
   animationDuration?: number,
+  textProps?: TextProps,
   showAnimation?: Animatable.Animation,
   hideAnimation?: Animatable.Animation,
   _resolver: (value?: T) => void
 }
 
 type SnackbarOptions<
+  TRet,
   T extends Record<string, unknown> = Record<string, unknown>,
-  TRet = unknown
 > = {
   id?: string,
   timeout?: number,
@@ -52,14 +53,15 @@ type SnackbarOptions<
   animationDuration?: number,
   showAnimation?: Animatable.Animation,
   hideAnimation?: Animatable.Animation,
+  textProps?: TextProps,
 }
 
 export type ShowSnackbarFn<
+  TRet = unknown,
   T extends Record<string, unknown> = Record<string, unknown>,
-  TRet = unknown
 > = (
   title: string,
-  options?: SnackbarOptions<T, TRet>
+  options?: SnackbarOptions<TRet, T>
 ) => Promise<TRet | undefined>;
 
 export type HideSnackbarFn = (messageId: string) => void;
@@ -68,7 +70,7 @@ export type SnackbarContextData<
   T extends Record<string, unknown> = Record<string, unknown>,
   TRet = unknown
 > = {
-  showSnackbar: ShowSnackbarFn<T, TRet>,
+  showSnackbar: ShowSnackbarFn<TRet, T>,
   hideSnackbar: HideSnackbarFn,
   snackbarAreaHeight: number,
   pushInsetOffset: (insets: Partial<Insets>) => string,
@@ -109,7 +111,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     overflow: 'hidden',
     borderRadius: 5,
-    top: Platform.OS === 'web' ? 5 : 0, // not sure why this is different on web
+    top: 0, // not sure why this is different on web
     opacity: 0.05,
     bottom: 5,
     left: 5,
@@ -130,6 +132,7 @@ export type SnackbarComponentProps = {
   animationDuration: number,
   style?: ViewStyle,
   textStyle?: TextStyle,
+  textProps?: TextProps,
   onHeight: (height: number) => void,
 };
 
@@ -142,20 +145,19 @@ export interface Insets {
 
 
 export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
-  item,
-  index,
-  cleanUpAfterAnimations,
-  showAnimation,
-  hideAnimation,
   animationDuration,
+  children,
+  cleanUpAfterAnimations,
+  hideAnimation,
+  index,
+  item,
+  onHeight,
+  showAnimation,
   style,
   textStyle,
-  children,
-  onHeight,
 }) => {
   const theme = useTheme(),
         delay = index * 100,
-        // animatedWidth = useRef(new Animated.Value(0)),
         [width, setWidth] = useState(0),
         onAnimationEnd = useCallback(() => {
           if (item.status === 'hidden') {
@@ -228,10 +230,16 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
 };
 
 export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = (props) => {
-  const { textStyle, item } = props;
+  const { textStyle, textProps, item } = props;
   return (
     <DefaultSnackbarWrapper {...props}>
-      <Text style={[styles.flexOne, textStyle]}>{ item.title }</Text>
+      <Text
+        style={[styles.flexOne, textStyle]}
+        numberOfLines={1}
+        {...textProps}
+      >
+        { item.title }
+      </Text>
       { item.actions.map((a) => (
         <Button
           key={`${a.label}`}
@@ -317,10 +325,13 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           setSnackbars((msgs) => msgs.filter((m) => m.id !== messageId));
           return anim;
         }, [insets.bottom, snackbars]),
-        showSnackbar = useCallback(<T extends Record<string, unknown> = Record<string, unknown>, TRet = unknown>(
-          title: string,
-          opts?: SnackbarOptions<T, TRet>,
-        ): Promise<TRet | void> => {
+        showSnackbar = useCallback(<
+          TRet,
+          T extends Record<string, unknown> = Record<string, unknown>,
+          >(
+            title: string,
+            opts?: SnackbarOptions<TRet, T>,
+          ): Promise<TRet | void> => {
           const messageId = opts?.id ?? getRandomID(),
                 timeout = opts?.timeout || (opts?.persistent ? undefined : defaultTimeout);
 
@@ -398,7 +409,6 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
     anim.start();
     return () => anim.stop();
   }, [insets.bottom]);
-
 
   useEffect(() => {
     const wasQueued = visibleSnackbars.filter((i) => i.status === 'queued');
@@ -482,6 +492,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
                 <SnackbarComponent
                   key={i.id}
                   item={i}
+                  textProps={i.textProps}
                   showAnimation={showAnimation}
                   hideAnimation={hideAnimation}
                   animationDuration={animationDuration}
@@ -499,17 +510,28 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         </SafeAreaView>
       </Portal>
     </SnackbarContext.Provider>
-  ), [SnackbarComponent, animationDuration,
-    children, cleanUpAfterAnimations, contextData, hideAnimation,
-    insets.right, showAnimation, style, textStyle, visibleSnackbars]);
+  ), [
+    animationDuration,
+    children,
+    cleanUpAfterAnimations,
+    contextData,
+    hideAnimation,
+    insets.left,
+    insets.right,
+    showAnimation,
+    SnackbarComponent,
+    style,
+    textStyle,
+    visibleSnackbars,
+  ]);
 };
 
 export const useShowSnackbar = <
+  TRet,
   T extends Record<string, unknown> = Record<string, unknown>,
-  TRet = unknown
 >(
-    defaultOpts?: SnackbarOptions<T, TRet>,
-  ): ShowSnackbarFn<T, TRet> => {
+    defaultOpts?: SnackbarOptions<TRet, T>,
+  ): ShowSnackbarFn<TRet, T> => {
   const { showSnackbar } = useContext<SnackbarContextData<T, TRet>>(
     SnackbarContext as React.Context<SnackbarContextData<T, TRet>>,
   );
@@ -517,7 +539,7 @@ export const useShowSnackbar = <
   const memoizedDefaultOpts = useDeepMemo(defaultOpts);
   const overridableShowSnackbar = useCallback((
     title: string,
-    opts?: SnackbarOptions<T, TRet>,
+    opts?: SnackbarOptions<TRet, T>,
   ) => showSnackbar(
     title,
     { ...memoizedDefaultOpts, ...opts },
@@ -549,16 +571,18 @@ export const useSetSnackbarInsetOffset = (insets: Partial<Insets>, isEnabled = t
 
   useEffect(() => {
     if (isEnabled) {
-      const id = pushInsetOffset(insets);
+      const id = pushInsetOffset({
+        bottom: insets.bottom,
+        left: insets.left,
+        right: insets.right,
+        top: insets.top,
+      });
 
       return () => {
         removeInsetOffset(id);
       };
     }
     return () => {};
-
-    // we just want to update if the insets objects properties have changed
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     isEnabled,
     insets.bottom,
@@ -570,11 +594,11 @@ export const useSetSnackbarInsetOffset = (insets: Partial<Insets>, isEnabled = t
   ]);
 };
 
-export const useSnackbar = <T extends Record<string, unknown> = Record<string, unknown>, TRet = unknown>(
-  defaultOpts?: SnackbarOptions<T, TRet>,
+export const useSnackbar = <TRet, T extends Record<string, unknown> = Record<string, unknown>>(
+  defaultOpts?: SnackbarOptions<TRet, T>,
 ): [
-  ShowSnackbarFn<T, TRet>,
+  ShowSnackbarFn<TRet, T>,
   HideSnackbarFn
-] => [useShowSnackbar<T, TRet>(defaultOpts), useHideSnackbar()];
+] => [useShowSnackbar<TRet, T>(defaultOpts), useHideSnackbar()];
 
 export default SnackbarContext;
