@@ -484,8 +484,11 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
 
   const hideSnackbarExternal = useCallback((snackbarId: string) => {
     const item = snackbars.find((i) => i.id === snackbarId);
-    item?.responseResolver({ result: 'hiddenByExternalCall' });
-    hideSnackbar(snackbarId);
+
+    if (item) {
+      item.responseResolver({ result: 'hiddenByExternalCall' });
+      hideSnackbar(snackbarId);
+    }
   }, [hideSnackbar, snackbars]);
 
   const contextData = useMemo<SnackbarContextData>(() => ({
