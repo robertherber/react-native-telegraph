@@ -482,13 +482,15 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
     setInsetOffsets((prev) => prev.filter((offset) => offset.id !== id));
   }, []);
 
+  const hideSnackbarExternal = useCallback((snackbarId: string) => {
+    const item = snackbars.find((i) => i.id === snackbarId);
+    item?.responseResolver({ result: 'hiddenByExternalCall' });
+    hideSnackbar(snackbarId);
+  }, [hideSnackbar, snackbars]);
+
   const contextData = useMemo<SnackbarContextData>(() => ({
     showSnackbar,
-    hideSnackbar: (snackbarId: string) => {
-      const item = snackbars.find((i) => i.id === snackbarId);
-      item?.responseResolver({ result: 'hiddenByExternalCall' });
-      hideSnackbar(snackbarId);
-    },
+    hideSnackbar: hideSnackbarExternal,
     snackbarAreaHeight: snackbarAreaHeightBottom,
     pushInsetOffset,
     removeInsetOffset,
@@ -497,8 +499,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
     snackbarAreaHeightBottom,
     pushInsetOffset,
     removeInsetOffset,
-    snackbars,
-    hideSnackbar,
+    hideSnackbarExternal,
   ]);
 
   const animatedLeft = useRef(new Animated.Value(insets.left));
