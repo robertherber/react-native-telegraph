@@ -19,6 +19,7 @@
     "Dialog.js",
     "ErrorBoundary.js",
     "types.js",
+    "deferred.js",
     "utils.js",
     "index.d.ts",
     "Snackbar.d.ts",

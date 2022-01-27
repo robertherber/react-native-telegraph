@@ -20,9 +20,9 @@ const ViewWithError: React.FC<{ showError: boolean}> = ({ showError }) => {
 const TelegraphDemo = () => {
   const [hey, setHey] = useState(0),
         [showSnackbar, hideSnackbar] = useSnackbar<'a' | 'b'>({
-          textProps: { numberOfLines: 1 }
+          textProps: { numberOfLines: 1 },
         }),
-        showDialog = useShowDialog(),
+        showDialog = useShowDialog({ maxWidth: 400 }),
         showPrompt = useShowPrompt(),
         [persistent, setPersistent] = useState(false),
         snackbarAreaHeight = useSnackbarAreaHeight(),
@@ -33,36 +33,36 @@ const TelegraphDemo = () => {
   
   useEffect(() => {
     const showDialogAfterSnackbar = async () => {
-      const buttonPressed = await showSnackbar('static snackbar', { 
+      const { response } = showSnackbar('static snackbar', { 
         persistent: true, 
         actions: [
           { 
             label: 'Show dialog', 
-            onPress: (messageId) => {
-              hideSnackbar(messageId);
-              return 'a'
-            } 
+            buttonId: 'a'
           },
           { 
             label: 'Hide', 
-            onPress: (messageId) => {
-              hideSnackbar(messageId);
-              return 'b'
-            } 
+            buttonId: 'b'
           }
         ] 
       })
 
-      console.log('buttonPressed', buttonPressed);
+      const { buttonId } = await response;
 
-      if(buttonPressed === 'a'){
-        showDialog('a dialog', {
+      console.log('buttonPressed', buttonId);
+
+      if(buttonId === 'a'){
+        const { response: res } = showDialog('a dialog', {
           description: 'with a description',
+          maxWidth: 400,
           actions: [{
             label: 'simulate error',
-            onPress: () => setHey(5)
+            buttonId: 'error'
           }]
         })
+        if((await res).buttonId === 'error'){
+          setHey(5);
+        }
       }
     }
 
@@ -70,14 +70,16 @@ const TelegraphDemo = () => {
   }, []);
 
   const handlePrompt = useCallback(async () => {
-    await showPrompt('A dialog', {
+   const {status,buttonId, textValue} = await showPrompt('A dialog', {
      message: 'Enter an email',
      dismissable: true,
+     maxWidth: 400,
      inputProps: { autoFocus: true, placeholder: 'email placeholder', keyboardType: 'email-address' },
-     actions: [{ label: 'Cancel', dismiss: true }, { label: 'Ok' }]
-   })
-   .then((result) => alert(result))
-   .catch(() => alert('dismissed!'))
+     actions: [{ label: 'Cancel' }, { label: 'Ok' }]
+   }).response;
+   alert(JSON.stringify({status,buttonId, textValue}));
+
+   
    
  }, [])
 
@@ -99,7 +101,7 @@ const TelegraphDemo = () => {
       <ViewWithError showError={hey === 5} />
       <FAB icon='plus'  onPress={() => {
         setCount(c => c + 1);
-        showSnackbar('snackbar with a hell of a lot of content snackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of content ' + count, { persistent, actions: [{label: 'hey'}, {label: 'yo'}] });
+        showSnackbar('snackbar with a hell of a lot of content snackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of contentsnackbar with a hell of a lot of content ' + count, { persistent, actions: [{label: 'hey', buttonId: 'a'}, {label: 'yo', buttonId:'b'}] });
       }} />
     </Animatable.View>
   </View>

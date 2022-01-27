@@ -17,19 +17,24 @@ import {
 import * as Animatable from 'react-native-animatable';
 
 import {
-  Action, RawAction,
+  Action, Id,
 } from './types';
 import {
-  mapActionToRawAction, getRandomID, useDeepMemo,
+  getRandomID, useDeepMemo,
 } from './utils';
+import deferred from './deferred';
 
 
-type Snackbar<T extends Record<string, unknown> = Record<string, unknown>> = {
+type Snackbar<
+  TButtonId extends Id = Id,
+  T extends Record<string, unknown> = Record<string, unknown>
+> = {
   id: string,
   title: string,
   timeout?: number,
-  actions: Array<RawAction>,
+  actions: Array<Action<TButtonId>>,
   status: 'hidden' | 'visible' | 'queued',
+  hideTimeoutTimer: boolean,
   data?: T,
   onShow?: () => void,
   onHide?: () => void,
@@ -37,41 +42,56 @@ type Snackbar<T extends Record<string, unknown> = Record<string, unknown>> = {
   textProps?: TextProps,
   showAnimation?: Animatable.Animation,
   hideAnimation?: Animatable.Animation,
-  _resolver: (value?: T) => void
+  responseResolver: (value: SnackbarResponse) => void,
 }
 
 type SnackbarOptions<
-  TRet,
+  TButtonId extends Id = Id,
   T extends Record<string, unknown> = Record<string, unknown>,
 > = {
   id?: string,
   timeout?: number,
   persistent?: boolean,
-  actions?: Array<Action<TRet>>,
+  actions?: Array<Action<TButtonId>>,
   data?: T
   onShow?: () => void,
   onHide?: () => void,
   animationDuration?: number,
+  hideTimeoutTimer?: boolean,
   showAnimation?: Animatable.Animation,
   hideAnimation?: Animatable.Animation,
   textProps?: TextProps,
 }
 
 export type ShowSnackbarFn<
-  TRet = unknown,
+  TButtonId extends Id = Id,
   T extends Record<string, unknown> = Record<string, unknown>,
 > = (
   title: string,
-  options?: SnackbarOptions<TRet, T>
-) => Promise<TRet | undefined>;
+  options?: SnackbarOptions<TButtonId, T>
+) => SnackbarHandle<TButtonId>;
+
+type SnackbarResult = 'timeout' | 'buttonPressed' | 'hiddenByExternalCall';
+
+type SnackbarResponse<TButtonId extends Id = Id> = {
+  buttonId?: TButtonId,
+  result: SnackbarResult,
+}
+
+type SnackbarHandle<TButtonId extends Id = Id> = {
+  snackbarId: string,
+  hide: () => void,
+  response: Promise<SnackbarResponse<TButtonId>>,
+}
+
 
 export type HideSnackbarFn = (messageId: string) => void;
 
 export type SnackbarContextData<
+  TButtonId extends Id = Id,
   T extends Record<string, unknown> = Record<string, unknown>,
-  TRet = unknown
 > = {
-  showSnackbar: ShowSnackbarFn<TRet, T>,
+  showSnackbar: ShowSnackbarFn<TButtonId, T>,
   hideSnackbar: HideSnackbarFn,
   snackbarAreaHeight: number,
   pushInsetOffset: (insets: Partial<Insets>) => string,
@@ -79,7 +99,7 @@ export type SnackbarContextData<
 }
 
 const SnackbarContext = createContext<SnackbarContextData>({
-  showSnackbar: () => Promise.resolve(undefined),
+  showSnackbar: () => ({ snackbarId: '', hide: () => {}, response: Promise.resolve({ result: 'timeout', buttonId: '' }) }),
   hideSnackbar: () => undefined,
   snackbarAreaHeight: 0,
   pushInsetOffset: () => '',
@@ -205,7 +225,7 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
         <Surface style={[styles.surface, style]}>
           { children }
         </Surface>
-        { item.timeout ? (
+        { item.timeout && !item.hideTimeoutTimer ? (
           <View pointerEvents='none' style={styles.timerWrapper}>
             <Animated.View
               style={[styles.timer, {
@@ -223,10 +243,13 @@ export const DefaultSnackbarWrapper: React.FC<SnackbarComponentProps> = ({
       </View>
     </Animatable.View>
   ), [
-    animation, animationDuration, children, delay,
+    animation, animationDuration,
+    children, delay,
     item.animationDuration, item.timeout,
     width,
-    onAnimationEnd, onHeight, style, textStyle?.color, theme.colors.text,
+    item.hideTimeoutTimer,
+    onAnimationEnd, onHeight,
+    style, textStyle?.color, theme.colors.text,
   ]);
 };
 
@@ -243,8 +266,8 @@ export const DefaultSnackbarComponent: React.FC<SnackbarComponentProps> = (props
       </Text>
       { item.actions.map((a) => (
         <Button
-          key={`${a.label}`}
-          onPress={() => a.onPress(item.id)}
+          key={a.label}
+          onPress={() => item.responseResolver({ result: 'buttonPressed', buttonId: a.buttonId })}
         >
           { a.label }
         </Button>
@@ -327,55 +350,73 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           return anim;
         }, [insets.bottom, snackbars]),
         showSnackbar = useCallback(<
-          TRet,
+          TButtonId extends Id = Id,
           T extends Record<string, unknown> = Record<string, unknown>,
           >(
             title: string,
-            opts?: SnackbarOptions<TRet, T>,
-          ): Promise<TRet | void> => {
-          const messageId = opts?.id ?? getRandomID(),
-                timeout = opts?.timeout || (opts?.persistent ? undefined : defaultTimeout);
+            opts?: SnackbarOptions<TButtonId, T>,
+          ): SnackbarHandle<TButtonId> => {
+          const snackbarId = opts?.id ?? getRandomID(),
+                timeout = opts?.timeout || (opts?.persistent ? undefined : defaultTimeout),
+                hideSelf = () => {
+                  clearTimeout(timeouts.current[snackbarId]);
+                  hideSnackbar(snackbarId);
+                },
+                actions = opts?.actions
+                  || (opts?.persistent
+                    ? [{ label: 'Hide' }]
+                    : []
+                  );
 
-          const promise = new Promise<TRet | void>((resolve) => {
-            const hideSelf = () => {
-                    hideSnackbar(messageId);
-                    resolve();
-                  },
-                  actions = opts?.actions?.map(mapActionToRawAction<TRet>(hideSelf, resolve))
-                    || (opts?.persistent
-                      ? [{ onPress: hideSelf, label: 'Hide' }]
-                      : []
-                    );
+          const {
+            resolve: responseResolver,
+            promise: response,
+          } = deferred<SnackbarResponse<TButtonId>>();
 
-            setSnackbars((msgs) => {
-              const status = msgs.length >= maxSimultaneusItems
-                ? 'queued'
-                : 'visible';
+          setSnackbars((msgs) => {
+            const status = msgs.length >= maxSimultaneusItems
+              ? 'queued'
+              : 'visible';
 
-              if (status === 'visible' && timeout) {
-                clearTimeout(timeouts.current[messageId]);
-                timeouts.current[messageId] = setTimeout(() => {
-                  hideSnackbar(messageId);
-                  resolve();
-                }, timeout) as unknown as number;
-              }
+            if (status === 'visible' && timeout) {
+              timeouts.current[snackbarId] = setTimeout(() => {
+                responseResolver({ result: 'timeout' });
+              }, timeout) as unknown as number;
+            }
 
-              const newMessages = [...msgs.filter((m) => m.id !== messageId), {
+            const newMessages: Snackbar<TButtonId, T>[] = [
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore
+              ...msgs.filter((m) => m.id !== snackbarId),
+              {
                 ...opts,
-                _resolver: resolve,
                 title,
-                id: messageId,
+                id: snackbarId,
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
                 actions,
                 timeout,
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
                 data: opts?.data,
                 status,
-              }] as Snackbar[];
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                responseResolver,
+              }];
 
-              return newMessages;
-            });
+            return newMessages;
           });
 
-          return promise;
+          void response.then(hideSelf);
+
+          const handle: SnackbarHandle<TButtonId> = {
+            snackbarId,
+            hide: () => responseResolver({ result: 'hiddenByExternalCall' }),
+            response,
+          };
+
+          return handle;
         }, [maxSimultaneusItems, hideSnackbar, defaultTimeout]);
 
 
@@ -423,6 +464,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
         if (item.timeout) {
           clearTimeout(timeouts.current[item.id]);
           timeouts.current[item.id] = setTimeout(() => {
+            item.responseResolver({ result: 'timeout' });
             hideSnackbar(item.id);
           }, item.timeout) as unknown as number;
         }
@@ -440,18 +482,23 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
     setInsetOffsets((prev) => prev.filter((offset) => offset.id !== id));
   }, []);
 
-  const contextData = useMemo(() => ({
+  const contextData = useMemo<SnackbarContextData>(() => ({
     showSnackbar,
-    hideSnackbar,
+    hideSnackbar: (snackbarId: string) => {
+      const item = snackbars.find((i) => i.id === snackbarId);
+      item?.responseResolver({ result: 'hiddenByExternalCall' });
+      hideSnackbar(snackbarId);
+    },
     snackbarAreaHeight: snackbarAreaHeightBottom,
     pushInsetOffset,
     removeInsetOffset,
   }), [
     showSnackbar,
-    hideSnackbar,
     snackbarAreaHeightBottom,
     pushInsetOffset,
     removeInsetOffset,
+    snackbars,
+    hideSnackbar,
   ]);
 
   const animatedLeft = useRef(new Animated.Value(insets.left));
@@ -466,7 +513,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   }, [insets.left]);
 
   return useMemo(() => (
-    <SnackbarContext.Provider value={contextData as SnackbarContextData<Record<string, unknown>>}>
+    <SnackbarContext.Provider value={contextData}>
       { children }
       <Portal>
         <SafeAreaView pointerEvents='box-none' style={styles.flexOne}>
@@ -528,19 +575,21 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
 };
 
 export const useShowSnackbar = <
-  TRet,
+  TButtonId extends Id = Id,
   T extends Record<string, unknown> = Record<string, unknown>,
 >(
-    defaultOpts?: SnackbarOptions<TRet, T>,
-  ): ShowSnackbarFn<TRet, T> => {
-  const { showSnackbar } = useContext<SnackbarContextData<T, TRet>>(
-    SnackbarContext as React.Context<SnackbarContextData<T, TRet>>,
+    defaultOpts?: SnackbarOptions<TButtonId, T>,
+  ): ShowSnackbarFn<TButtonId, T> => {
+  const { showSnackbar } = useContext<SnackbarContextData<TButtonId, T>>(
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    SnackbarContext,
   );
 
   const memoizedDefaultOpts = useDeepMemo(defaultOpts);
   const overridableShowSnackbar = useCallback((
     title: string,
-    opts?: SnackbarOptions<TRet, T>,
+    opts?: SnackbarOptions<TButtonId, T>,
   ) => showSnackbar(
     title,
     { ...memoizedDefaultOpts, ...opts },
@@ -595,11 +644,14 @@ export const useSetSnackbarInsetOffset = (insets: Partial<Insets>, isEnabled = t
   ]);
 };
 
-export const useSnackbar = <TRet, T extends Record<string, unknown> = Record<string, unknown>>(
-  defaultOpts?: SnackbarOptions<TRet, T>,
-): [
-  ShowSnackbarFn<TRet, T>,
+export const useSnackbar = <
+  TButtonId extends Id = Id,
+  T extends Record<string, unknown> = Record<string, unknown>
+>(
+    defaultOpts?: SnackbarOptions<TButtonId, T>,
+  ): [
+  ShowSnackbarFn<TButtonId, T>,
   HideSnackbarFn
-] => [useShowSnackbar<TRet, T>(defaultOpts), useHideSnackbar()];
+] => [useShowSnackbar<TButtonId, T>(defaultOpts), useHideSnackbar()];
 
 export default SnackbarContext;

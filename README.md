@@ -27,17 +27,20 @@ const onPressHandler = () => {
 // if you want more control, there is useSnackbar
 const [showSnackbar, hideSnackbar] = useSnackbar();
 
-showSnackbar('Simple snack');
-showSnackbar('Some new information is available', {
-  persistent: true,
-  actions: [{
-    onPress: () => { /* reload */ },
-    label: 'Reload'
-  }, {
-    onPress: 'hide',
-    label: 'Hide'
-  }]
-})
+const onPress = useCallback(async () => {
+  showSnackbar('Simple snack');
+  const { buttonId, status } = await showSnackbar('Some new information is available', {
+    persistent: true,
+    actions: [{
+      buttonId: 'reload',
+      label: 'Reload'
+    }, {
+      buttonId: 'hide',
+      label: 'Hide'
+    }]
+  }).response
+}, [])
+
 
 // Hide somewhere else in the code
 const snackbarId = showSnackbar('lets hide this in another way');
@@ -60,16 +63,20 @@ import { useDialog } from 'react-native-telegraph';
 
 const [showDialog] = useDialog();
 
-showDialog('We need your approval to continue', {
-  actions: [{
-    onPress: () => { /* do something */ },
-    label: 'Maybe later'
-  }, {
-    onPress: () => { /* do something */ },
-    label: 'OK'
-  }]
-  
-})
+const onPress = useCallback(async () => {
+  const { buttonId } = await showDialog('We need your approval to continue', {
+    actions: [{
+      buttonId: 'maybe-later',
+      label: 'Maybe later'
+    }, {
+      buttonId: 'ok',
+      label: 'OK'
+    }]
+  }).response
+
+  console.log('You pressed button: ' + buttonId)
+}, []);
+
 ```
 
 ![Dialog](https://callstack.github.io/react-native-paper/screenshots/dialog-1.png)

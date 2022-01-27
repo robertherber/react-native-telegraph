@@ -9,35 +9,36 @@ import {
 } from 'react-native-paper';
 import { TextInputProps } from 'react-native-paper/lib/typescript/components/TextInput/TextInput';
 
+import deferred from './deferred';
 import {
-  Action, RawAction,
+  Action, Id,
 } from './types';
 import {
   getRandomID,
-  mapActionToRawAction, useDeepMemo,
+  useDeepMemo,
 } from './utils';
 
 
-export type DialogData<T = unknown> = {
+export type DialogData<TButtonId extends Id = Id, T = unknown> = {
   id: string,
   title: string,
   dismissable?: boolean,
-  onDismiss?: () => void,
+  response: Promise<DialogResponse<TButtonId>>,
   description?: string,
   maxWidth?: number,
-  actions: Array<RawAction>,
-  inputProps?: Partial<TextInputProps>,
+  buttons: Array<Action<TButtonId>>,
+  inputProps?: Omit<Partial<TextInputProps>, 'value'>,
   status: 'hidden' | 'visible' | 'queued',
-  data?: T
+  data?: T,
+  responseResolver: (value: DialogResponse) => void,
 }
 
-export type DialogOptions<T = unknown> = {
+export type DialogOptions<TButtonId extends Id = Id, T = unknown> = {
   id?: string,
   message?: string,
   maxWidth?: number,
   description?: string,
-  actions?: Array<Action>,
-  onDismiss?: () => void,
+  actions?: Array<Action<TButtonId>>,
   inputProps?: Partial<TextInputProps>,
   dismissable?: boolean,
   data?: T
@@ -49,40 +50,56 @@ const styles = StyleSheet.create({
   dialog: { width: '100%', alignSelf: 'center' },
 });
 
-export type ShowDialogFn = (title: string, options?: DialogOptions) => string
-export type ShowDialogSimpleFn = (
+type DialogStatus = 'dismissed' | 'buttonPressed' | 'inputSubmitted' | 'hiddenByExternalCall';
+
+type DialogResponse<TButtonId extends Id = Id> = {
+  buttonId?: TButtonId,
+  textValue?: string,
+  status: DialogStatus,
+}
+
+type ShowDialogHandle<TButtonId extends Id = Id> = {
+  dialogId: string,
+  hide: () => void,
+  response: Promise<DialogResponse<TButtonId>>,
+}
+
+export type ShowDialogFn<TButtonId extends Id = Id> = (
   title: string,
   options?: DialogOptions
-) => Promise<boolean | string>
-export type ShowPromptFn = (title: string, options?: DialogOptions) => Promise<string | false>;
-export type HideDialogFn = (dialogId: string) => void;
+) => ShowDialogHandle<TButtonId>
+export type ShowPromptFn<TButtonId extends Id = Id> = (
+  title: string,
+  options?: DialogOptions
+) => ShowDialogHandle<TButtonId>;
+export type HideDialogFn = (dialogId?: string) => boolean;
 
-export type DialogContextData = {
-  showDialog: ShowDialogFn,
+export type DialogContextData<TButtonId extends Id = Id> = {
+  showDialog: ShowDialogFn<TButtonId>,
   hideDialog: HideDialogFn,
   dialogCount: number;
 }
 
 export const DialogContext = createContext<DialogContextData>({
-  showDialog: () => '',
-  hideDialog: () => undefined,
+  showDialog: () => ({
+    dialogId: '',
+    hide: () => {},
+    response: Promise.resolve({ status: 'dismissed', buttonId: '', textValue: '' }),
+  }),
+  hideDialog: () => true,
   dialogCount: 0,
 });
 
-export type DialogContextProps = {
+export type DialogComponentProps = {
   index: number,
   item: DialogData,
-  hideDialog: (dialogId: string) => void,
   cleanUpAfterAnimations: (dialogId: string) => void,
-  onDismiss?: () => void,
 };
 
 
-export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
+export const DefaultDialogComponent: React.FC<DialogComponentProps> = ({
   item,
   cleanUpAfterAnimations,
-  hideDialog,
-  onDismiss,
 }) => {
   const textContentRef = useRef(item.inputProps?.defaultValue || '');
 
@@ -95,12 +112,17 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
   }, [item, cleanUpAfterAnimations]);
 
   const onDismissInternal = useCallback(() => {
-    hideDialog(item.id);
-    onDismiss?.();
+    item.responseResolver({
+      status: 'dismissed',
+      buttonId: undefined,
+      textValue: undefined,
+    });
     return true;
-  }, [onDismiss, hideDialog, item.id]);
+  }, [item]);
 
-  const onChangeText = useCallback((text: string) => { textContentRef.current = text; }, []);
+  const onChangeText = useCallback((text: string) => {
+    textContentRef.current = text;
+  }, []);
 
   useEffect(() => {
     if (Platform.OS === 'android' && item.dismissable) {
@@ -110,15 +132,14 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
     return () => {};
   }, [onDismissInternal, item.dismissable]);
 
-  return (
+  return useMemo(() => (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flexOne}>
-      <View style={styles.flexOne} pointerEvents='box-none'>
+      <View style={styles.flexOne} pointerEvents='box-none' testID='dialog'>
         <Dialog
           visible={item.status === 'visible'}
-          style={[{ maxWidth: item.maxWidth }, styles.dialog]}
-          onDismiss={item.dismissable ? onDismissInternal : undefined}
+          style={[styles.dialog, { maxWidth: item.maxWidth }]}
+          onDismiss={item.dismissable !== false ? onDismissInternal : undefined}
         >
-
           <Dialog.Title>{ item.title }</Dialog.Title>
           { item.description
             ? (
@@ -131,21 +152,29 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
           { item.inputProps ? (
             <TextInput
               {...item.inputProps}
+              value={undefined}
               onChangeText={onChangeText}
               onSubmitEditing={() => {
-                const action = item.actions.find((a) => !a.dismiss);
-                action?.onPress(item.id, textContentRef.current);
+                item.responseResolver({
+                  status: 'inputSubmitted',
+                  buttonId: undefined,
+                  textValue: textContentRef.current,
+                });
               }}
               style={styles.textInput}
             />
           ) : null}
 
           <Dialog.Actions>
-            { item.actions.map((a) => (
+            { item.buttons.map((a) => (
               <Button
                 key={a.label}
                 onPress={() => {
-                  a.onPress(item.id, textContentRef.current);
+                  item.responseResolver({
+                    status: 'buttonPressed',
+                    buttonId: a.buttonId,
+                    textValue: textContentRef.current,
+                  });
                 }}
               >
                 {a.label}
@@ -157,11 +186,12 @@ export const DefaultDialogComponent: React.FC<DialogContextProps> = ({
 
       </View>
     </KeyboardAvoidingView>
-  );
+  ), [item, onChangeText, onDismissInternal]);
 };
 
+
 export type DialogProviderProps = {
-  DialogComponent?: React.FC<DialogContextProps>,
+  DialogComponent?: React.FC<DialogComponentProps>,
 }
 
 export const DialogProvider: React.FC<DialogProviderProps> = ({
@@ -170,34 +200,54 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({
   const [dialogs, setDialogs] = useState<DialogData[]>([]),
         shownDialogs = useMemo(() => dialogs.slice(0, 1), [dialogs]),
         hideDialog = useCallback((dialogId: string) => {
-          setDialogs((msgs) => msgs.map((m) => (m.id === dialogId ? { ...m, status: 'hidden' } : m)));
+          setDialogs((msgs) => msgs.map((m) => {
+            if (m.id !== dialogId) {
+              return m;
+            }
+
+            return { ...m, status: 'hidden' };
+          }));
         }, []),
         cleanUpAfterAnimations = useCallback((dialogId: string) => {
           setDialogs((msgs) => msgs.filter((m) => m.id !== dialogId));
         }, []),
-        showDialog = useCallback((title: string, opts?: DialogOptions) => {
+        showDialog = useCallback<ShowDialogFn>((title: string, opts?: DialogOptions) => {
           const dialogId = opts?.id || getRandomID(),
                 hideSelf = () => hideDialog(dialogId),
-                actions = opts?.actions?.map(mapActionToRawAction(hideSelf, () => null))
-                  || [{ onPress: () => hideDialog(dialogId), label: 'Ok' }];
+                actions = opts?.actions || [{ label: 'Ok' }];
 
-          setDialogs((msgs) => {
-            const status = msgs.length >= 1 ? 'queued' : 'visible';
+          const status = dialogs.length >= 1 ? 'queued' : 'visible';
+          const {
+            promise: response,
+            resolve: responseResolver,
+          } = deferred<DialogResponse>();
 
-            const newMessages = [...msgs.filter((m) => m.id !== dialogId), {
-              ...opts,
-              title,
-              id: dialogId,
-              actions,
-              status,
-            }] as DialogData[];
+          setDialogs([...dialogs.filter((m) => m.id !== dialogId), {
+            ...opts,
+            title,
+            id: dialogId,
+            buttons: actions,
+            status,
+            // eslint-disable-next-line
+            // @ts-ignore
+            responseResolver,
+            response,
+          }]);
 
-            return newMessages;
-          });
+          void response.then(hideSelf);
 
-
-          return dialogId;
-        }, [hideDialog]);
+          return {
+            dialogId,
+            hide: () => {
+              responseResolver({
+                status: 'hiddenByExternalCall',
+                buttonId: undefined,
+                textValue: undefined,
+              });
+            },
+            response,
+          };
+        }, [hideDialog, dialogs]);
 
   useEffect(() => {
     const items = shownDialogs.filter((i) => i.status === 'queued'),
@@ -208,11 +258,25 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({
     }
   }, [shownDialogs, hideDialog]);
 
-  return (
+  const hideDialogExternal = useCallback((dialogIdProp?: string) => {
+    const dialogId = dialogIdProp || dialogs.find((d) => d.status === 'visible')?.id;
+    if (dialogId) {
+      hideDialog(dialogId);
+      const dialog = dialogs.find((d) => d.id === dialogId);
+      dialog?.responseResolver({
+        status: 'hiddenByExternalCall',
+        buttonId: undefined,
+        textValue: undefined,
+      });
+      return true;
+    }
+    return false;
+  }, [dialogs, hideDialog]);
 
+  return (
     <DialogContext.Provider value={{
       showDialog,
-      hideDialog,
+      hideDialog: hideDialogExternal,
       dialogCount: dialogs.length,
     }}
     >
@@ -223,19 +287,22 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({
             index={i}
             cleanUpAfterAnimations={cleanUpAfterAnimations}
             item={d}
-            onDismiss={d.onDismiss}
-            hideDialog={hideDialog}
             key={d.id}
           />
         )) }
       </Portal>
     </DialogContext.Provider>
-
   );
 };
 
-export const useShowDialog = (defaultOpts?: DialogOptions): ShowDialogFn => {
-  const { showDialog } = useContext(DialogContext),
+export function useShowDialog<TButtonId extends Id = Id>(
+  defaultOpts?: DialogOptions<TButtonId>,
+): ShowDialogFn<TButtonId> {
+  const { showDialog } = useContext<DialogContextData<TButtonId>>(
+    // eslint-disable-next-line
+    // @ts-ignore
+    DialogContext,
+  ),
         memoizedDefaultOpts = useDeepMemo(defaultOpts),
         overrideShowDialog = useCallback((
           title: string,
@@ -246,42 +313,7 @@ export const useShowDialog = (defaultOpts?: DialogOptions): ShowDialogFn => {
         ), [memoizedDefaultOpts, showDialog]);
 
   return overrideShowDialog;
-};
-
-export const useShowDialogSimple = (defaultOpts?: DialogOptions): ShowDialogSimpleFn => {
-  const { showDialog } = useContext(DialogContext),
-        memoizedDefaultOpts = useDeepMemo(defaultOpts),
-        overrideShowDialog = useCallback((
-          title: string,
-          opts?: DialogOptions,
-        ) => new Promise<boolean | string>((resolve) => {
-          const combinedProps = { ...memoizedDefaultOpts, ...opts };
-          showDialog(
-            title,
-            {
-              dismissable: true,
-              ...combinedProps,
-              onDismiss: () => {
-                resolve(false);
-                combinedProps.onDismiss?.();
-              },
-              actions: (combinedProps.actions ? combinedProps.actions : [{ label: 'Submit' }]).map((a) => ({
-                ...a,
-                onPress: (id: string) => {
-                  a.onPress?.(id);
-                  if (a.dismiss) {
-                    resolve(false);
-                  } else {
-                    resolve(a.label || true);
-                  }
-                },
-              })),
-            },
-          );
-        }), [memoizedDefaultOpts, showDialog]);
-
-  return overrideShowDialog;
-};
+}
 
 export const useHasActiveDialog = (): boolean => {
   const { dialogCount } = useContext(DialogContext);
@@ -295,50 +327,38 @@ export const useShowPrompt = (defaultOpts?: DialogOptions): ShowPromptFn => {
         overrideShowDialog = useCallback((
           title: string,
           opts?: DialogOptions,
-        ) => new Promise<string | false>((resolve) => {
+        ) => {
           const combinedProps = { ...memoizedDefaultOpts, ...opts };
-          showDialog(
+          return showDialog(
             title,
             {
               dismissable: true,
               ...combinedProps,
               inputProps: { autoFocus: true, ...combinedProps.inputProps },
-              onDismiss: () => {
-                resolve(false);
-                combinedProps.onDismiss?.();
-              },
-              actions: (combinedProps.actions ? combinedProps.actions : [{ label: 'Submit' }]).map((a) => ({
-                ...a,
-                onPress: (id, text) => {
-                  a.onPress?.(id, text);
-                  if (a.dismiss) {
-                    resolve(false);
-                  } else {
-                    resolve(text!);
-                  }
-                },
-              })),
             },
           );
-        }), [memoizedDefaultOpts, showDialog]);
-
+        }, [memoizedDefaultOpts, showDialog]);
   return overrideShowDialog;
 };
 
 export const useHideDialog = (dialogId?: string): HideDialogFn => {
   const { hideDialog } = useContext(DialogContext);
 
-  if (dialogId) {
-    return (overrideDialogId?: string) => hideDialog(overrideDialogId || dialogId);
-  }
-
-  return hideDialog;
+  return useCallback((overrideDialogId?: string) => hideDialog(overrideDialogId || dialogId), [
+    dialogId,
+    hideDialog,
+  ]);
 };
 
-export const useDialog = (defaultOpts?: DialogOptions): [
-  ShowDialogFn,
+export function useDialog<TButtonId extends Id = Id>(defaultOpts?: DialogOptions<TButtonId>): [
+  ShowDialogFn<TButtonId>,
   HideDialogFn
-] => [useShowDialog(defaultOpts), useHideDialog()];
+] {
+  return [
+    useShowDialog(defaultOpts),
+    useHideDialog(),
+  ];
+}
 
 
 export default DialogContext;

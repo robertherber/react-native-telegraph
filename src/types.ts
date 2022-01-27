@@ -1,11 +1,8 @@
-export type Action<T = unknown> = {
-  onPress?: ((messageId: string, text?: string) => T | PromiseLike<T> | undefined),
+export type Id = symbol | string | number;
+
+export type Action<TButtonId extends Id = Id> = {
+  buttonId?: TButtonId,
   label: string,
-  dismiss?: boolean
 }
 
-export type RawAction = {
-  onPress: (messageId: string, text?: string) => void,
-  label: string
-  dismiss: boolean
-}
+
