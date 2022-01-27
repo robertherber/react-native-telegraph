@@ -12,6 +12,7 @@ import {
   ViewStyle,
   Animated,
   TextProps,
+  Platform,
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 
@@ -90,7 +91,7 @@ const styles = StyleSheet.create({
   container: {
     left: 0, right: 0, position: 'absolute', bottom: 0,
   },
-  wrapper: { overflow: 'hidden' },
+  wrapper: { },
   surface: {
     borderRadius: 5,
     margin: 5,
@@ -111,8 +112,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     overflow: 'hidden',
     borderRadius: 5,
-    top: 0, // not sure why this is different on web
-    opacity: 0.05,
+    top: Platform.OS === 'web' ? 5 : 0,
+    opacity: 0.08,
     bottom: 5,
     left: 5,
     right: 5,

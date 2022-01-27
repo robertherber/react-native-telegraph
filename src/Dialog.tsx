@@ -50,8 +50,11 @@ const styles = StyleSheet.create({
 });
 
 export type ShowDialogFn = (title: string, options?: DialogOptions) => string
-export type ShowDialogSimpleFn = (title: string, options?: DialogOptions) => Promise<boolean | string>
-export type ShowPromptFn = (title: string, options?: DialogOptions) => Promise<string>
+export type ShowDialogSimpleFn = (
+  title: string,
+  options?: DialogOptions
+) => Promise<boolean | string>
+export type ShowPromptFn = (title: string, options?: DialogOptions) => Promise<string | false>;
 export type HideDialogFn = (dialogId: string) => void;
 
 export type DialogContextData = {
@@ -292,7 +295,7 @@ export const useShowPrompt = (defaultOpts?: DialogOptions): ShowPromptFn => {
         overrideShowDialog = useCallback((
           title: string,
           opts?: DialogOptions,
-        ) => new Promise<string>((resolve, reject) => {
+        ) => new Promise<string | false>((resolve) => {
           const combinedProps = { ...memoizedDefaultOpts, ...opts };
           showDialog(
             title,
@@ -301,7 +304,7 @@ export const useShowPrompt = (defaultOpts?: DialogOptions): ShowPromptFn => {
               ...combinedProps,
               inputProps: { autoFocus: true, ...combinedProps.inputProps },
               onDismiss: () => {
-                reject(new Error('Dismissed by clicking outside'));
+                resolve(false);
                 combinedProps.onDismiss?.();
               },
               actions: (combinedProps.actions ? combinedProps.actions : [{ label: 'Submit' }]).map((a) => ({
@@ -309,7 +312,7 @@ export const useShowPrompt = (defaultOpts?: DialogOptions): ShowPromptFn => {
                 onPress: (id, text) => {
                   a.onPress?.(id, text);
                   if (a.dismiss) {
-                    reject(new Error('Dismissed by clicking dismiss button'));
+                    resolve(false);
                   } else {
                     resolve(text!);
                   }
