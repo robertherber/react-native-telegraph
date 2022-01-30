@@ -95,7 +95,7 @@ export type SnackbarContextData<
   hideSnackbar: HideSnackbarFn,
   snackbarAreaHeight: number,
   pushInsetOffset: (insets: Partial<Insets>) => string,
-  removeInsetOffset: (id: string) => void
+  removeInsetOffset: (id: string) => void,
 }
 
 const SnackbarContext = createContext<SnackbarContextData>({
@@ -286,6 +286,7 @@ export type SnackbarProviderProps = {
   showAnimation?: Animatable.Animation,
   hideAnimation?: Animatable.Animation,
   animationDuration?: number
+  hideTimeoutTimer?: boolean,
 }
 
 export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
@@ -299,6 +300,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
   SnackbarComponent = DefaultSnackbarComponent,
   defaultTimeout = 5000,
   animationDuration = 300,
+  hideTimeoutTimer,
   showAnimation = 'fadeInDown',
   hideAnimation = 'fadeOutDown',
 }) => {
@@ -390,6 +392,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
               ...msgs.filter((m) => m.id !== snackbarId),
               {
                 ...opts,
+                hideTimeoutTimer: opts?.hideTimeoutTimer ?? hideTimeoutTimer ?? false,
                 title,
                 id: snackbarId,
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -417,7 +420,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
           };
 
           return handle;
-        }, [maxSimultaneusItems, hideSnackbar, defaultTimeout]);
+        }, [defaultTimeout, hideSnackbar, maxSimultaneusItems, hideTimeoutTimer]);
 
 
   useEffect(() => {
